@@ -6,33 +6,33 @@ import {Config, defaultConfig} from './mux';
 import {Stream} from './stream';
 
 export class Session extends Transform {
-    // localGoAway indicates that we should stop accepting futher connections
+    /** localGoAway indicates that we should stop accepting futher connections */
     private localGoaway = false;
 
-    // remoteGoAway indicates the remote side does not want futher connections.
+    /** remoteGoAway indicates the remote side does not want futher connections. */
     private remoteGoAway = false;
 
-    // nextStreamID is the next stream we should send. This depends if we are a client/server.
+    /** nextStreamID is the next stream we should send. This depends if we are a client/server. */
     private nextStreamID: number;
 
-    // config holds our configuration
+    /** config holds our configuration */
     public config: typeof defaultConfig;
 
-    // pings is used to track inflight pings
+    /** pings is used to track inflight pings */
     private pings: Map<number, NodeJS.Timeout> = new Map();
     private pingID = 0;
     private pingTimer?: NodeJS.Timeout;
 
-    // streams maps a stream id to a stream
+    /** streams maps a stream id to a stream */
     private streams: Map<number, Stream> = new Map();
 
-    // shutdown is used to safely close a session
+    /** shutdown is used to safely close a session */
     private shutdown = false;
 
-    // Callback when a steam had been created
+    /** Callback when a steam had been created */
     protected onStream?: (duplex: Duplex) => void;
 
-    // Current header from data received
+    /** Current header from data received */
     private currentHeader?: Header;
 
     constructor(client: boolean, config?: Config, onStream?: (duplex: Duplex) => void) {
@@ -148,8 +148,10 @@ export class Session extends Transform {
         return this.shutdown;
     }
 
-    // Close is used to close the session and all streams.
-    // Attempts to send a GoAway before closing the connection.
+    /**
+     * Close is used to close the session and all streams.
+     * Attempts to send a GoAway before closing the connection.
+     */
     public close(error?: Error) {
         if (this.shutdown) {
             return;
@@ -174,7 +176,9 @@ export class Session extends Transform {
         this.end();
     }
 
-    // incomingStream is used to create a new incoming stream
+    /**
+     * incomingStream is used to create a new incoming stream
+     */
     private incomingStream(streamID: number) {
         // Reject immediately if we are doing a go away
         if (this.localGoaway) {
@@ -208,13 +212,17 @@ export class Session extends Transform {
         }
     }
 
-    // goAway is used to send a goAway message
+    /**
+     * goAway is used to send a goAway message
+     */
     private goAway(reason: GO_AWAY_ERRORS) {
         const hdr = new Header(VERSION, TYPES.GoAway, 0, 0, reason);
         return this.send(hdr);
     }
 
-    // Open is used to create a new stream
+    /**
+     * Open is used to create a new stream
+     */
     public open(): Stream {
         const stream = new Stream(this, this.nextStreamID, STREAM_STATES.Init);
         this.nextStreamID += 2;
@@ -249,7 +257,9 @@ export class Session extends Transform {
         }
     }
 
-    // Ping is used to measure the RTT response time
+    /**
+     * Ping is used to measure the RTT response time
+     */
     private ping() {
         if (this.shutdown) {
             this.emit('error', ERRORS.errSessionShutdown);

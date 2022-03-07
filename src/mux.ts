@@ -1,29 +1,44 @@
 import {initialStreamWindow} from './constants';
 
 export interface Config {
-    // AcceptBacklog is used to limit how many streams may be
-    // waiting an accept.
-    // WARNING [Difference with the Go implementation]: total number of streams, not in-flight
+    /**
+     * AcceptBacklog is used to limit how many streams may be
+     * waiting an accept.
+     *
+     * WARNING [Difference with the Go implementation]: total number of streams, not in-flight
+     */
     acceptBacklog?: number;
 
-    // EnableKeepalive is used to do a period keep alive
-    // messages using a ping.
+    /**
+     * EnableKeepalive is used to do a period keep alive
+     * messages using a ping.
+     */
     enableKeepAlive?: boolean;
 
-    // KeepAliveInterval is how often to perform the keep alive
-    keepAliveInterval?: number; // In seconds
+    /**
+     * KeepAliveInterval is how often to perform the keep alive
+     * 
+     * In seconds
+     */
+    keepAliveInterval?: number;
 
-    // ConnectionWriteTimeout is meant to be a "safety valve" timeout after
-    // we which will suspect a problem with the underlying connection and
-    // close it. This is only applied to writes, where's there's generally
-    // an expectation that things will move along quickly.
-    connectionWriteTimeout?: number; // In seconds
+    /**
+     * ConnectionWriteTimeout is meant to be a "safety valve" timeout after
+     * we which will suspect a problem with the underlying connection and
+     * close it. This is only applied to writes, where's there's generally
+     * an expectation that things will move along quickly.
+     * 
+     * In seconds
+     */
+    connectionWriteTimeout?: number;
 
-    // MaxStreamWindowSize is used to control the maximum
-    // window size that we allow for a stream.
+    /**
+     * MaxStreamWindowSize is used to control the maximum
+     * window size that we allow for a stream.
+     */
     maxStreamWindowSize?: number;
 
-    // Logger is used to pass in the logger to be used.
+    /** Logger is used to pass in the logger to be used. */
     logger?: typeof console.log;
 }
 
