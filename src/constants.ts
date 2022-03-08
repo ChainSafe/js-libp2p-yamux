@@ -1,16 +1,49 @@
 export const VERSION = 0;
 
 export enum TYPES {
+    /**
+     * Data is used for data frames. They are followed
+     * by length bytes worth of payload.
+     */
     Data = 0x0,
+    /**
+     * WindowUpdate is used to change the window of
+     * a given stream. The length indicates the delta
+     * update to the window.
+     */
     WindowUpdate = 0x1,
+    /**
+     * Ping is sent as a keep-alive or to measure
+     * the RTT. The StreamID and Length value are echoed
+     * back in the response.
+     */
     Ping = 0x2,
+    /**
+     * GoAway is sent to terminate a session. The StreamID
+     * should be 0 and the length is an error code.
+     */
     GoAway = 0x3,
 }
 
 export enum FLAGS {
+    /**
+     * SYN is sent to signal a new stream. May
+     * be sent with a data payload
+     */
     SYN = 0x1,
+    /**
+     * ACK is sent to acknowledge a new stream. May
+     * be sent with a data payload
+     */
     ACK = 0x2,
+    /**
+     * FIN is sent to half-close the given stream.
+     * May be sent with a data payload.
+     */
     FIN = 0x4,
+    /**
+     * RST is used to hard close a given stream.
+     */
     RST = 0x8,
 }
 
@@ -25,6 +58,7 @@ export enum STREAM_STATES {
     Reset = 7,
 }
 
+/** initialStreamWindow is the initial stream window size */
 export const initialStreamWindow = 256 * 1024;
 
 export enum GO_AWAY_ERRORS {
