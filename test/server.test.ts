@@ -1,12 +1,12 @@
-import {expect} from 'chai';
+import { expect } from 'chai'
 
-import {Server} from '../src/server';
-import {Session} from '../src/session';
+import { Server } from '../src/server'
+import { Session } from '../src/session'
 
 describe('Server', () => {
-    it('is a Session instance', () => {
-        const server = new Server((_) => {});
-        expect(server instanceof Session).to.be.true;
-        server.close();
-    });
-});
+  it('is a Session instance', () => {
+    const server = new Server((_) => {})
+    expect(server instanceof Session).to.be.true
+    server.close()
+  })
+})
