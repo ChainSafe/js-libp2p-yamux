@@ -1,4 +1,5 @@
 import {Duplex} from 'stream';
+import {concat} from 'uint8arrays/concat';
 
 import {STREAM_STATES, FLAGS, TYPES, initialStreamWindow, VERSION, ERRORS} from './constants';
 import {Header} from './header';
@@ -10,7 +11,7 @@ export class Stream extends Duplex {
     private id: number;
     private session: Session;
     private state: STREAM_STATES;
-    private recvBuf?: Buffer;
+    private recvBuf?: Uint8Array;
     private controlHdr?: Header;
 
     constructor(session: Session, id: number, state: STREAM_STATES) {
@@ -58,7 +59,7 @@ export class Stream extends Duplex {
                 const packetLength = Math.min(this.sendWindow, chunk.length);
                 const sendHdr = new Header(VERSION, TYPES.Data, flags, this.id, packetLength);
                 const buffers = [sendHdr.encode(), chunk];
-                const packet = Buffer.concat(buffers);
+                const packet = concat(buffers);
 
                 const rest = packet.slice(packetLength + Header.LENGTH);
                 const packetToSend = packet.slice(0, packetLength + Header.LENGTH);

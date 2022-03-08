@@ -17,7 +17,7 @@ export interface Config {
 
     /**
      * KeepAliveInterval is how often to perform the keep alive
-     * 
+     *
      * In seconds
      */
     keepAliveInterval?: number;
@@ -27,7 +27,7 @@ export interface Config {
      * we which will suspect a problem with the underlying connection and
      * close it. This is only applied to writes, where's there's generally
      * an expectation that things will move along quickly.
-     * 
+     *
      * In seconds
      */
     connectionWriteTimeout?: number;

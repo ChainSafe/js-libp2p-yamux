@@ -1,6 +1,7 @@
 import {Duplex} from 'stream';
 
 import {expect} from 'chai';
+import {compare} from 'uint8arrays/compare';
 
 import {FLAGS, TYPES, VERSION} from '../src/constants';
 import {Header} from '../src/header';
@@ -35,11 +36,11 @@ describe('Server session', () => {
         const server = new Session(false, testConfigWithKeepAlive);
         const expectedPings = [
             // first ping
-            Buffer.from(['00', '02', '00', '01', '00', '00', '00', '00', '00', '00', '00', '00']),
+            Uint8Array.from([0, 2, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0]),
             // second ping
-            Buffer.from(['00', '02', '00', '01', '00', '00', '00', '00', '00', '00', '00', '01']),
+            Uint8Array.from([0, 2, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1]),
             // Third ping
-            Buffer.from(['00', '02', '00', '01', '00', '00', '00', '00', '00', '00', '00', '02']),
+            Uint8Array.from([0, 2, 0, 1, 0, 0, 0, 0, 0, 0, 0, 2]),
         ];
 
         server.on('data', (data) => {
@@ -49,7 +50,7 @@ describe('Server session', () => {
                 return done();
             }
             const expectedPing = expectedPings.shift()!;
-            expect(Buffer.compare(data, expectedPing)).to.equal(0);
+            expect(compare(data, expectedPing)).to.equal(0);
         });
     });
 

@@ -1,4 +1,5 @@
 import {expect} from 'chai';
+import {compare} from 'uint8arrays/compare';
 
 import {VERSION, TYPES, FLAGS} from '../src/constants';
 import {Header} from '../src/header';
@@ -9,7 +10,7 @@ describe('Header', () => {
     });
 
     it('can parse and re-encode an encoded header', () => {
-        const encodedHeader = Buffer.from(['00', '02', '00', '01', '00', '00', '00', '00', '00', '00', '00', '07']);
+        const encodedHeader = Uint8Array.from([0, 2, 0, 1, 0, 0, 0, 0, 0, 0, 0, 7]);
         const header = Header.parse(encodedHeader);
 
         expect(header.version).to.equal(VERSION);
@@ -18,6 +19,6 @@ describe('Header', () => {
         expect(header.streamID).to.equal(0);
         expect(header.length).to.equal(7);
 
-        expect(Buffer.compare(header.encode(), encodedHeader)).to.equal(0);
+        expect(compare(header.encode(), encodedHeader)).to.equal(0);
     });
 });

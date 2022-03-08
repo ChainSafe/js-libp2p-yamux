@@ -39,5 +39,8 @@
     ],
     "files": [
         "lib"
-    ]
+    ],
+    "dependencies": {
+        "uint8arrays": "^3.0.0"
+    }
 }

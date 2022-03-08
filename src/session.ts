@@ -1,4 +1,5 @@
 import {Duplex, Transform, TransformCallback} from 'stream';
+import {concat} from 'uint8arrays/concat';
 
 import {FLAGS, STREAM_STATES, TYPES, VERSION, GO_AWAY_ERRORS, ERRORS} from './constants';
 import {Header} from './header';
@@ -53,8 +54,8 @@ export class Session extends Transform {
         }
     }
 
-    _transform(chunk: any, encoding: BufferEncoding, cb: TransformCallback): void {
-        let packet = Buffer.alloc(chunk.length, chunk);
+    _transform(chunk: Uint8Array, encoding: BufferEncoding, cb: TransformCallback): void {
+        let packet = new Uint8Array(chunk);
 
         if (!this.currentHeader) {
             if (packet.length >= Header.LENGTH) {
@@ -112,7 +113,7 @@ export class Session extends Transform {
         return cb();
     }
 
-    private handleStreamMessage(currentHeader: Header, fullPacket: Buffer, encoding: BufferEncoding) {
+    private handleStreamMessage(currentHeader: Header, fullPacket: Uint8Array, encoding: BufferEncoding) {
         // Check for a new stream creation
         if (currentHeader.flags == FLAGS.SYN) {
             return this.incomingStream(currentHeader.streamID);
@@ -283,13 +284,12 @@ export class Session extends Transform {
         this.pingTimer = setInterval(() => this.ping(), this.config.keepAliveInterval * 1000);
     }
 
-    public send(header: Header, data?: Buffer) {
+    public send(header: Header, data?: Uint8Array) {
         const buffers = [header.encode()];
         if (data) {
             buffers.push(data);
         }
-
-        const toSend = Buffer.concat(buffers);
+        const toSend = concat(buffers);
         if (!this.writableEnded) {
             this.push(toSend);
         }

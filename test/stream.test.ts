@@ -1,4 +1,5 @@
 import {expect} from 'chai';
+import {compare} from 'uint8arrays/compare';
 
 import {STREAM_STATES, TYPES, VERSION} from '../src/constants';
 import {Header} from '../src/header';
@@ -23,9 +24,9 @@ describe('Stream', () => {
         const {stream, session} = createStream();
         session.on('data', (data) => {
             expect(
-                Buffer.compare(
+                compare(
                     data,
-                    Buffer.from(['00', '01', '00', '01', '00', '00', '00', '00', '00', '00', '00', '00'])
+                    Uint8Array.from([0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0])
                 )
             ).to.equal(0);
             session.removeAllListeners('data');
@@ -40,9 +41,9 @@ describe('Stream', () => {
         stream['sendWindow'] = 1
         session.on('data', (data) => {
             expect(
-                Buffer.compare(
+                compare(
                     data,
-                    Buffer.from(['00', '00', '00', '00', '00', '00', '00', '00', '00', '00', '00', '01', 'ff'])
+                    Uint8Array.from([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0xff])
                 )
             ).to.equal(0);
             expect(stream['sendWindow']).to.equal(0)
@@ -50,7 +51,7 @@ describe('Stream', () => {
             session.close();
             done();
         });
-        stream.write(Buffer.from(['ff']), () => stream.close());
+        stream.write(Uint8Array.from([0xff]), () => stream.close());
     });
 
     it('waits for a window update if send window is empty', (done) => {
@@ -59,9 +60,9 @@ describe('Stream', () => {
         stream['sendWindow'] = 0
         session.on('data', (data) => {
             expect(
-                Buffer.compare(
+                compare(
                     data,
-                    Buffer.from(['00', '00', '00', '00', '00', '00', '00', '00', '00', '00', '00', '01', 'ff'])
+                    Uint8Array.from([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0xff])
                 )
             ).to.equal(0);
             expect(stream['sendWindow']).to.equal(0)
@@ -70,7 +71,7 @@ describe('Stream', () => {
             session.close();
             done();
         });
-        stream.write(Buffer.from(['ff']), () => stream.close());
+        stream.write(Uint8Array.from([0xff]), () => stream.close());
         const hdr = new Header(VERSION, TYPES.WindowUpdate, 0, stream.ID(), 1);
         setTimeout(() => stream.incrSendWindow(hdr), 50)
     });
@@ -82,13 +83,13 @@ describe('Stream', () => {
         session.on('data', (data) => {
             if (data[1] === 0) { // packet is of type Data
                 numberOfDataPackets++
-                expect(Buffer.compare(data, Buffer.from(['00', '00', '00', '00', '00', '00', '00', '00', '00', '00', '00', '01', 'ff']))).to.equal(0);
+                expect(compare(data, Uint8Array.from([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0xff]))).to.equal(0);
                 expect(stream['sendWindow']).to.equal(0)
                 const hdr = new Header(VERSION, TYPES.WindowUpdate, 0, stream.ID(), 1);
                 stream.incrSendWindow(hdr)
             }
         });
-        stream.write(Buffer.from(['ff', 'ff']), () => {
+        stream.write(Uint8Array.from([0xff, 0xff]), () => {
             expect(numberOfDataPackets).to.equal(2)
             stream.close();
             session.removeAllListeners('data');
@@ -102,9 +103,9 @@ describe('Stream', () => {
         let {stream, session} = createStream(0, STREAM_STATES.Established);
         session.on('data', (data) => {
             expect(
-                Buffer.compare(
+                compare(
                     data,
-                    Buffer.from(['00', '01', '00', '04', '00', '00', '00', '00', '00', '00', '00', '00'])
+                    Uint8Array.from([0, 1, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0])
                 )
             ).to.equal(0);
             session.removeAllListeners('data');
@@ -118,9 +119,9 @@ describe('Stream', () => {
         const {stream, session} = createStream(0, STREAM_STATES.RemoteClose);
         session.on('data', (data) => {
             expect(
-                Buffer.compare(
+                compare(
                     data,
-                    Buffer.from(['00', '01', '00', '04', '00', '00', '00', '00', '00', '00', '00', '00'])
+                    Uint8Array.from([0, 1, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0])
                 )
             ).to.equal(0);
             session.removeAllListeners('data');
