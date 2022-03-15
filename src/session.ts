@@ -1,4 +1,4 @@
-import { Duplex, Transform, TransformCallback } from 'stream'
+import type { Muxer, MuxerInit } from '@libp2p/interfaces/stream-muxer'
 import { concat } from 'uint8arrays/concat'
 
 import { FLAGS, STREAM_STATES, TYPES, VERSION, GO_AWAY_ERRORS, ERRORS } from './constants'
@@ -6,7 +6,12 @@ import { Header } from './header'
 import { Config, defaultConfig } from './mux'
 import { Stream } from './stream'
 
-export class Session extends Transform {
+export interface YamuxInit extends MuxerInit {
+  config?: Config
+  client: boolean
+}
+
+export class Session implements Muxer {
   /** localGoAway indicates that we should stop accepting futher connections */
   private localGoaway = false
 
@@ -25,33 +30,36 @@ export class Session extends Transform {
   private pingTimer?: NodeJS.Timeout
 
   /** streams maps a stream id to a stream */
-  private streams: Map<number, Stream> = new Map()
+  private _streams: Map<number, Stream> = new Map()
 
   /** shutdown is used to safely close a session */
   private shutdown = false
 
   /** Callback when a steam had been created */
-  protected onStream?: (duplex: Duplex) => void
+  protected onIncomingStream?: (stream: Stream) => void
 
   /** Current header from data received */
   private currentHeader?: Header
 
-  constructor(client: boolean, config?: Config, onStream?: (duplex: Duplex) => void) {
-    super()
-    if (client) {
+  constructor(init: YamuxInit) {
+    if (init.client) {
       this.nextStreamID = 1
     } else {
       this.nextStreamID = 2
     }
-    this.onStream = onStream
+    this.onIncomingStream = init.onIncomingStream
     this.config = {
       ...defaultConfig,
-      ...config,
+      ...init.config,
     }
 
     if (this.config.enableKeepAlive) {
       this.keepalive()
     }
+  }
+
+  public get streams() {
+    return Array.from(this._streams.values())
   }
 
   _transform(chunk: Uint8Array, encoding: BufferEncoding, cb: TransformCallback): void {
@@ -120,7 +128,7 @@ export class Session extends Transform {
     }
 
     // Get the stream
-    const stream = this.streams.get(currentHeader.streamID)
+    const stream = this._streams.get(currentHeader.streamID)
 
     // If we do not have a stream, likely we sent a RST
     if (!stream) {
@@ -142,7 +150,7 @@ export class Session extends Transform {
   }
 
   public closeStream(streamID: number) {
-    this.streams.delete(streamID)
+    this._streams.delete(streamID)
   }
 
   public isClosed() {
@@ -166,7 +174,7 @@ export class Session extends Transform {
     this.pings.forEach((responseTimeout) => clearTimeout(responseTimeout))
 
     this.shutdown = true
-    this.streams.forEach((stream) => {
+    this._streams.forEach((stream) => {
       stream.forceClose()
       stream.destroy()
     })
@@ -191,25 +199,25 @@ export class Session extends Transform {
     const stream = new Stream(this, streamID, STREAM_STATES.SYNReceived)
 
     // Check if stream already exists
-    if (this.streams.has(streamID)) {
+    if (this._streams.has(streamID)) {
       this.config.logger('[ERR] yamux: duplicate stream declared')
       this.emit('error', ERRORS.errDuplicateStream)
       return this.goAway(GO_AWAY_ERRORS.goAwayProtoErr)
     }
 
     // Register the stream
-    this.streams.set(streamID, stream)
+    this._streams.set(streamID, stream)
 
-    if (this.streams.size > this.config.acceptBacklog) {
+    if (this._streams.size > this.config.acceptBacklog) {
       // Backlog exceeded! RST the stream
       this.config.logger('[WARN] yamux: backlog exceeded, forcing connection reset')
-      this.streams.delete(streamID)
+      this._streams.delete(streamID)
       const hdr = new Header(VERSION, TYPES.WindowUpdate, FLAGS.RST, streamID, 0)
       return this.send(hdr)
     }
 
-    if (this.onStream) {
-      this.onStream(stream)
+    if (this.onIncomingStream) {
+      this.onIncomingStream(stream)
     }
   }
 
@@ -237,7 +245,7 @@ export class Session extends Transform {
       return stream
     }
 
-    this.streams.set(stream.ID(), stream)
+    this._streams.set(stream.id(), stream)
     stream.sendWindowUpdate()
 
     return stream

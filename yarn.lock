@@ -42,6 +42,14 @@
   resolved "https://registry.yarnpkg.com/@ungap/promise-all-settled/-/promise-all-settled-1.1.2.tgz#aa58042711d6e3275dd37dc597e5d31e8c290a44"
   integrity sha512-sL/cEvJWAnClXw0wHk85/2L0G6Sj8UB0Ctc1TEMbKSsmpRosqhwj9gWgFRZSrBr2f9tiXISwNhCPmlfqUqyb9Q==
 
+abortable-iterator@^4.0.2:
+  version "4.0.2"
+  resolved "https://registry.yarnpkg.com/abortable-iterator/-/abortable-iterator-4.0.2.tgz#aea6a4a6a696badcbad1c9fff5a9ca85f0f286a4"
+  integrity sha512-SJGELER5yXr9v3kiL6mT5RZ1qlyJ9hV4nm34+vfsdIM1lp3zENQvpsqKgykpFLgRMUn3lzlizLTpiOASW05/+g==
+  dependencies:
+    get-iterator "^2.0.0"
+    it-stream-types "^1.0.3"
+
 ansi-colors@4.1.1:
   version "4.1.1"
   resolved "https://registry.yarnpkg.com/ansi-colors/-/ansi-colors-4.1.1.tgz#cbb9ae256bf750af1eab344f229aa27fe94ba348"
@@ -70,6 +78,11 @@ ansi-styles@^4.1.0:
   integrity sha512-zbB9rCJAT1rbjiVDb2hqKFHNYLxgtk8NURxZ3IZwD3F6NtxbXZQCnnSi1Lkx+IDohdPlFp222wVALIheZJQSEg==
   dependencies:
     color-convert "^2.0.1"
+
+any-signal@^3.0.0:
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/any-signal/-/any-signal-3.0.0.tgz#4f6ee491e5cdda9e9a544f50fdf1d14be40535b6"
+  integrity sha512-l1H1GEkGGIXVGfCtvq8N68YI7gHajmfzRdKhmb8sGyAQpLCblirLa8eB09j4uKaiwe7vodAChocUf7AT3mYq5g==
 
 anymatch@~3.1.1:
   version "3.1.1"
@@ -331,6 +344,11 @@ get-func-name@^2.0.0:
   resolved "https://registry.yarnpkg.com/get-func-name/-/get-func-name-2.0.0.tgz#ead774abee72e20409433a066366023dd6887a41"
   integrity sha1-6td0q+5y4gQJQzoGY2YCPdaIekE=
 
+get-iterator@^2.0.0:
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/get-iterator/-/get-iterator-2.0.0.tgz#c9ac9f8002e5d8d6b4dc9dae07c30945022a58c1"
+  integrity sha512-BDJawD5PU2gZv6Vlp8O28H4GnZcsr3h9gZUvnAP5xXP3WOy/QAoOsyMepSkw21jur+4t5Vppde72ChjhTIzxzg==
+
 glob-parent@~5.1.0:
   version "5.1.2"
   resolved "https://registry.yarnpkg.com/glob-parent/-/glob-parent-5.1.2.tgz#869832c58034fe68a4093c17dc15e8340d8401c4"
@@ -428,6 +446,16 @@ isexe@^2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/isexe/-/isexe-2.0.0.tgz#e8fbf374dc556ff8947a10dcb0572d633f2cfa10"
   integrity sha1-6PvzdNxVb/iUehDcsFctYz8s+hA=
+
+it-pushable@^2.0.1:
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/it-pushable/-/it-pushable-2.0.1.tgz#0beeca34be46c5ff64b9e946d1a9dfe6fec0b608"
+  integrity sha512-UVu0KRPovrUZrso7lue8LYBC29/egqxV6xCJkZ1E1F3zPgzs4C0MSv6eDigOQKbcPJTVemcM7nsu/XNV0lwl+w==
+
+it-stream-types@^1.0.3, it-stream-types@^1.0.4:
+  version "1.0.4"
+  resolved "https://registry.yarnpkg.com/it-stream-types/-/it-stream-types-1.0.4.tgz#6e66a11abfd98abab4894c30da15829a0a56bb43"
+  integrity sha512-0F3CqTIcIHwtnmIgqd03a7sw8BegAmE32N2w7anIGdALea4oAN4ltqPgDMZ7zn4XPLZifXEZlBXSzgg64L1Ebw==
 
 js-yaml@3.14.0:
   version "3.14.0"
