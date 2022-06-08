@@ -329,7 +329,6 @@ export class YamuxStream implements Stream {
     if ((flags & Flag.ACK) === Flag.ACK) {
       if (this.state === StreamState.SYNSent) {
         this.state = StreamState.Established
-        // TODO: this.session.establishStream(this)
       }
     }
     if ((flags & Flag.FIN) === Flag.FIN) {
