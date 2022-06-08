@@ -49,6 +49,12 @@
   "exports": {
     ".": {
       "import": "./dist/src/index.js"
+    },
+    "./config": {
+      "import": "./dist/src/config.js"
+    },
+    "./stream": {
+      "import": "./dist/src/stream.js"
     }
   },
   "eslintConfig": {

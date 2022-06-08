@@ -60,5 +60,5 @@ export interface FrameHeader {
 
 export function stringifyHeader (header: FrameHeader): string {
   const flags = flagCodes.filter(f => (header.flag & f) === f).map(f => Flag[f]).join('|')
-  return `{ streamID: ${header.streamID}, type: ${FrameType[header.type]}, flag: ${flags}, length: ${header.length} }`
+  return `streamID=${header.streamID} type=${FrameType[header.type]} flag=${flags} length=${header.length}`
 }

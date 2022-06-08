@@ -92,7 +92,7 @@ export class YamuxMuxer implements StreamMuxer {
     this.rtt = 0
 
     if (this.config.enableKeepAlive) {
-      void this.keepAlive()
+      void this.keepAliveLoop()
     }
   }
 
@@ -235,7 +235,7 @@ export class YamuxMuxer implements StreamMuxer {
     this._streams.delete(id)
   }
 
-  private async keepAlive (): Promise<void> {
+  private async keepAliveLoop (): Promise<void> {
     const abortPromise = new Promise((_resolve, reject) => this.closeController.signal.addEventListener('abort', reject, { once: true }))
     while (true) {
       try {
@@ -284,9 +284,11 @@ export class YamuxMuxer implements StreamMuxer {
   private handlePing (header: FrameHeader): void {
     // If the ping  is initiated by the sender, send a response
     if (header.flag === Flag.SYN) {
-      this.sendPing(length, Flag.ACK)
+      this.log?.('received ping request pingId=%s', header.length)
+      this.sendPing(header.length, Flag.ACK)
     } else if (header.flag === Flag.ACK) {
-      this.handlePingResponse(length)
+      this.log?.('received ping response pingId=%s', header.length)
+      this.handlePingResponse(header.length)
     } else {
       // Invalid state
       throw errcode(new Error('Invalid frame flag'), ERR_INVALID_FRAME, { header })
@@ -307,7 +309,6 @@ export class YamuxMuxer implements StreamMuxer {
 
     // update RTT
     this.rtt = Date.now() - this.activePing.started
-
     // clear the active ping
     delete this.activePing
   }
@@ -408,8 +409,10 @@ export class YamuxMuxer implements StreamMuxer {
         return
       }
       this.activePing = { id: pingId, started: Date.now() }
+      this.log?.('sending ping request pingId=%s', pingId)
+    } else {
+      this.log?.('sending ping response pingId=%s', pingId)
     }
-    this.log?.('sending ping pingId=%s', pingId)
     this.sendFrame({
       type: FrameType.Ping,
       flag: flag,
