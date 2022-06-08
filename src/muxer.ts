@@ -57,6 +57,9 @@ export class YamuxMuxer implements StreamMuxer {
     remote: undefined
   }
 
+  /** Number of tracked incoming streams */
+  private numIncomingStreams: number
+
   /** Used to close the muxer from either the sink or source */
   private readonly closeController: AbortController
 
@@ -81,6 +84,9 @@ export class YamuxMuxer implements StreamMuxer {
       }
     })
     this.closeController = new AbortController()
+
+    this.numIncomingStreams = 0
+
     // client uses odd streamIDs, server uses even streamIDs
     this.nextStreamID = this.client ? 1 : 2
 
@@ -103,6 +109,7 @@ export class YamuxMuxer implements StreamMuxer {
     this.log?.('new outgoing stream id=%s', id)
 
     const stream = this._newStream(id, name)
+    this._streams.set(id, stream)
 
     // send a window update to open the stream on the receiver end
     stream.sendWindowUpdate()
@@ -182,7 +189,7 @@ export class YamuxMuxer implements StreamMuxer {
     this.source.end(err)
   }
 
-  /** Create a new stream and set it in the stream mapping */
+  /** Create a new stream */
   private _newStream (id: number, name?: string | undefined, state = StreamState.Init): YamuxStream {
     if (this._streams.get(id) != null) {
       throw errcode(new Error('Stream already exists'), ERR_STREAM_ALREADY_EXISTS, { id })
@@ -202,9 +209,6 @@ export class YamuxMuxer implements StreamMuxer {
       getRTT: () => this.rtt
     })
 
-    this.log?.trace('new stream id=%s state=%s', id, StreamState[state])
-
-    this._streams.set(id, stream)
     return stream
   }
 
@@ -213,6 +217,9 @@ export class YamuxMuxer implements StreamMuxer {
    * issued a close.
    */
   private closeStream (id: number): void {
+    if (this.client === (id % 2 === 0)) {
+      this.numIncomingStreams--
+    }
     this._streams.delete(id)
   }
 
@@ -357,6 +364,22 @@ export class YamuxMuxer implements StreamMuxer {
 
     // allocate a new stream
     const stream = this._newStream(id, undefined, StreamState.SYNReceived)
+
+    // check against our configured maximum number of incoming streams
+    if (this.numIncomingStreams >= this.config.maxIncomingStreams) {
+      this.log?.('maxIncomingStreams exceeded, forcing stream reset')
+      return this.sendFrame({
+        type: FrameType.WindowUpdate,
+        flag: Flag.RST,
+        streamID: id,
+        length: 0
+      })
+    }
+
+    this.numIncomingStreams++
+    // the stream should now be tracked
+    this._streams.set(id, stream)
+
     this.onIncomingStream?.(stream)
   }
 
