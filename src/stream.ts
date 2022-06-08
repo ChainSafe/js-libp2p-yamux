@@ -3,7 +3,7 @@ import { pushable, Pushable } from 'it-pushable'
 import type { Sink, Source } from 'it-stream-types'
 import errcode from 'err-code'
 import { abortableSource } from 'abortable-iterator'
-import { Flag, FrameHeader, FrameType } from './frame.js'
+import { Flag, FrameHeader, FrameType, HEADER_LENGTH } from './frame.js'
 import { ERR_RECV_WINDOW_EXCEEDED, INITIAL_STREAM_WINDOW } from './constants.js'
 import type { Logger } from '@libp2p/logger'
 import type { Config } from './config.js'
@@ -60,14 +60,14 @@ export class YamuxStream implements Stream {
   private readonly _id: number
 
   /** The number of available bytes to send */
-  private sendWindowAvailable: number
-  /** Callback to notify that the sendWindow has been updated */
-  private notifySendWindowUpdate?: () => void
+  private sendWindowCapacity: number
+  /** Callback to notify that the sendWindowCapacity has been updated */
+  private sendWindowCapacityUpdate?: () => void
 
   /** The number of bytes available to receive in a full window */
   private recvWindow: number
   /** The number of available bytes to receive */
-  private recvWindowAvailable: number
+  private recvWindowCapacity: number
 
   // TODO add comments here
   private epochStart: number
@@ -93,9 +93,9 @@ export class YamuxStream implements Stream {
     this.readState = HalfStreamState.Open
     this.writeState = HalfStreamState.Open
 
-    this.sendWindowAvailable = INITIAL_STREAM_WINDOW
-    this.recvWindow = INITIAL_STREAM_WINDOW
-    this.recvWindowAvailable = this.recvWindow
+    this.sendWindowCapacity = INITIAL_STREAM_WINDOW
+    this.recvWindow = this.config.initialStreamWindowSize
+    this.recvWindowCapacity = this.recvWindow
     this.epochStart = Date.now()
     this.getRTT = init.getRTT
 
@@ -122,23 +122,16 @@ export class YamuxStream implements Stream {
 
       try {
         for await (let data of source) {
-          if (data.length <= this.sendWindowAvailable) {
-            // data length is lte window, send it all at once
-            this.sendData(data.subarray())
-            this.sendWindowAvailable -= data.length
-          } else {
-            // data length is gt window, send in chunks, waiting for window updates
-            while (data.length !== 0) {
-              // wait for the send window to refill
-              // eslint-disable-next-line max-depth
-              if (this.sendWindowAvailable === 0) await this.waitForSendWindow()
+          // send in chunks, waiting for window updates
+          while (data.length !== 0) {
+            // wait for the send window to refill
+            if (this.sendWindowCapacity === 0) await this.waitForSendWindowCapacity()
 
-              // send as much as we can
-              const toSend = Math.min(this.sendWindowAvailable, data.length)
-              this.sendData(data.subarray(0, toSend))
-              this.sendWindowAvailable -= toSend
-              data = data.subarray(toSend)
-            }
+            // send as much as we can
+            const toSend = Math.min(this.sendWindowCapacity, this.config.maxMessageSize - HEADER_LENGTH, data.length)
+            this.sendData(data.subarray(0, toSend))
+            this.sendWindowCapacity -= toSend
+            data = data.subarray(toSend)
           }
         }
       } catch (err: unknown) {
@@ -271,11 +264,11 @@ export class YamuxStream implements Stream {
    *
    * Will throw with ERR_STREAM_ABORT if the stream gets aborted
    */
-  async waitForSendWindow (): Promise<void> {
+  async waitForSendWindowCapacity (): Promise<void> {
     if (this.abortController.signal.aborted) {
       throw errcode(new Error('stream aborted'), ERR_STREAM_ABORT)
     }
-    if (this.sendWindowAvailable > 0) {
+    if (this.sendWindowCapacity > 0) {
       return
     }
     let reject: (err: Error) => void
@@ -284,7 +277,7 @@ export class YamuxStream implements Stream {
     }
     this.abortController.signal.addEventListener('abort', abort)
     return await new Promise((_resolve, _reject) => {
-      this.notifySendWindowUpdate = () => {
+      this.sendWindowCapacityUpdate = () => {
         this.abortController.signal.removeEventListener('abort', abort)
         _resolve(undefined)
       }
@@ -300,11 +293,11 @@ export class YamuxStream implements Stream {
     this.processFlags(header.flag)
 
     // increase send window
-    const available = this.sendWindowAvailable
-    this.sendWindowAvailable += header.length
+    const available = this.sendWindowCapacity
+    this.sendWindowCapacity += header.length
     // if the update increments a 0 availability, notify the stream that sending can resume
     if (available === 0 && header.length > 0) {
-      this.notifySendWindowUpdate?.()
+      this.sendWindowCapacityUpdate?.()
     }
   }
 
@@ -316,12 +309,12 @@ export class YamuxStream implements Stream {
     this.processFlags(header.flag)
 
     // check that our recv window is not exceeded
-    if (this.recvWindowAvailable < header.length) {
-      throw errcode(new Error('receive window exceeded'), ERR_RECV_WINDOW_EXCEEDED, { available: this.recvWindowAvailable, recv: header.length })
+    if (this.recvWindowCapacity < header.length) {
+      throw errcode(new Error('receive window exceeded'), ERR_RECV_WINDOW_EXCEEDED, { available: this.recvWindowCapacity, recv: header.length })
     }
 
     const data = await readData()
-    this.recvWindowAvailable -= header.length
+    this.recvWindowCapacity -= header.length
     this.sourceInput.push(data)
   }
 
@@ -389,14 +382,14 @@ export class YamuxStream implements Stream {
       this.recvWindow = Math.min(this.recvWindow * 2, this.config.maxStreamWindowSize)
     }
 
-    if (this.recvWindowAvailable >= this.recvWindow && flags === 0) {
+    if (this.recvWindowCapacity >= this.recvWindow && flags === 0) {
       // a window update isn't needed
       return
     }
 
     // update the receive window
-    const delta = this.recvWindow - this.recvWindowAvailable
-    this.recvWindowAvailable = this.recvWindow
+    const delta = this.recvWindow - this.recvWindowCapacity
+    this.recvWindowCapacity = this.recvWindow
 
     // update the epoch start
     this.epochStart = now
@@ -410,7 +403,7 @@ export class YamuxStream implements Stream {
     })
   }
 
-  sendData (data: Uint8Array): void {
+  private sendData (data: Uint8Array): void {
     const flags = this.getSendFlags()
     this.sendFrame({
       type: FrameType.Data,
