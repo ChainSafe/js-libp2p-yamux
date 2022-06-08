@@ -38,15 +38,17 @@ export class YamuxMuxer implements StreamMuxer {
   private readonly config: Config
   private readonly log?: Logger
 
-  private readonly _streams: Map<number, YamuxStream>
-
   /** The next stream id to be used when initiating a new stream */
   private nextStreamID: number
+  /** Primary stream mapping, streamID => stream */
+  private readonly _streams: Map<number, YamuxStream>
+
+  /** The next ping id to be used when pinging */
+  private nextPingID: number
   /** Tracking info for the currently active ping */
   private activePing?: { id: number, started: number }
-  // TODO send pings / keep alive and update rtt
   /** Round trip time */
-  rtt = 0
+  private rtt: number
 
   private readonly client: boolean
 
@@ -81,6 +83,13 @@ export class YamuxMuxer implements StreamMuxer {
     this.closeController = new AbortController()
     // client uses odd streamIDs, server uses even streamIDs
     this.nextStreamID = this.client ? 1 : 2
+
+    this.nextPingID = 0
+    this.rtt = 0
+
+    if (this.config.enableKeepAlive) {
+      void this.keepAlive()
+    }
   }
 
   get streams (): Stream[] {
@@ -207,6 +216,22 @@ export class YamuxMuxer implements StreamMuxer {
     this._streams.delete(id)
   }
 
+  private async keepAlive (): Promise<void> {
+    const abortPromise = new Promise((_resolve, reject) => this.closeController.signal.addEventListener('abort', reject, { once: true }))
+    while (true) {
+      try {
+        await Promise.race([
+          abortPromise,
+          new Promise((resolve) => setTimeout(resolve, this.config.keepAliveInterval))
+        ])
+        this.sendPing(this.nextPingID++)
+      } catch (e) {
+        // closed
+        return
+      }
+    }
+  }
+
   private async handleFrame (header: FrameHeader, readData?: () => Promise<Uint8Array>): Promise<void> {
     const {
       streamID,
@@ -258,7 +283,14 @@ export class YamuxMuxer implements StreamMuxer {
       // this ping doesn't match our active ping request
       throw errcode(new Error('ping doesn\'t match our id'), ERR_NOT_MATCHING_PING)
     }
+
+    // valid ping response
+
+    // update RTT
     this.rtt = Date.now() - this.activePing.started
+
+    // clear the active ping
+    delete this.activePing
   }
 
   private handleGoAway (reason: GoAwayCode): void {
