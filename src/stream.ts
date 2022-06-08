@@ -69,7 +69,11 @@ export class YamuxStream implements Stream {
   /** The number of available bytes to receive */
   private recvWindowCapacity: number
 
-  // TODO add comments here
+  /**
+   * An 'epoch' is the time it takes to process and read data
+   *
+   * Used in conjunction with RTT to determine whether to increase the recvWindow
+   */
   private epochStart: number
   private readonly getRTT: () => number
 
