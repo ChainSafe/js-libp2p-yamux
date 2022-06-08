@@ -11,7 +11,7 @@ import anySignal from 'any-signal'
 import { Flag, FrameHeader, FrameType, GoAwayCode, stringifyHeader } from './frame.js'
 import { StreamState, YamuxStream } from './stream.js'
 import { encodeFrame } from './encode.js'
-import { ERR_BOTH_CLIENTS, ERR_INVALID_FRAME, ERR_NOT_MATCHING_PING, ERR_STREAM_ALREADY_EXISTS, ERR_UNREQUESTED_PING } from './constants.js'
+import { ERR_BOTH_CLIENTS, ERR_INVALID_FRAME, ERR_MUXER_LOCAL_CLOSED, ERR_MUXER_REMOTE_CLOSED, ERR_NOT_MATCHING_PING, ERR_STREAM_ALREADY_EXISTS, ERR_UNREQUESTED_PING, PROTOCOL_ERRORS } from './constants.js'
 import { Config, defaultConfig, verifyConfig } from './config.js'
 import { Decoder } from './decode.js'
 import type { Logger } from '@libp2p/logger'
@@ -52,10 +52,8 @@ export class YamuxMuxer implements StreamMuxer {
 
   private readonly client: boolean
 
-  private readonly goAway: {local?: GoAwayCode, remote?: GoAwayCode} = {
-    local: undefined,
-    remote: undefined
-  }
+  private localGoAway?: GoAwayCode
+  private remoteGoAway?: GoAwayCode
 
   /** Number of tracked incoming streams */
   private numIncomingStreams: number
@@ -103,6 +101,13 @@ export class YamuxMuxer implements StreamMuxer {
   }
 
   newStream (name?: string | undefined): YamuxStream {
+    if (this.remoteGoAway !== undefined) {
+      throw errcode(new Error('muxer closed remotely'), ERR_MUXER_REMOTE_CLOSED)
+    }
+    if (this.localGoAway !== undefined) {
+      throw errcode(new Error('muxer closed locally'), ERR_MUXER_LOCAL_CLOSED)
+    }
+
     const id = this.nextStreamID
     this.nextStreamID += 2
 
@@ -141,8 +146,8 @@ export class YamuxMuxer implements StreamMuxer {
       reason = GoAwayCode.NormalTermination
     } catch (err: unknown) {
       // either a protocol or internal error
-      const errCode = (err as {code?: string}).code
-      if (errCode === ERR_INVALID_FRAME || errCode === ERR_UNREQUESTED_PING || errCode === ERR_NOT_MATCHING_PING) {
+      const errCode = (err as {code: string}).code
+      if (PROTOCOL_ERRORS.includes(errCode)) {
         this.log?.error('protocol error in sink', err)
         reason = GoAwayCode.ProtocolError
       } else {
@@ -155,18 +160,16 @@ export class YamuxMuxer implements StreamMuxer {
 
     this.log?.('muxer sink ended')
 
-    void error
-    void reason
     this.close(reason, error)
   }
 
   /**
    * Close the muxer
    *
-   * @param reason - If provided, will trigger a GoAway message to be sent with this code
+   * @param reason - The GoAway reason to be sent
    * @param err - If provided, will be passed to underlying streams
    */
-  close (reason?: GoAwayCode, err?: Error): void {
+  close (reason = GoAwayCode.NormalTermination, err?: Error): void {
     if (this.closeController.signal.aborted) {
       // already closed
       return
@@ -174,16 +177,25 @@ export class YamuxMuxer implements StreamMuxer {
 
     this.log?.('muxer close reason=%s error=%s', GoAwayCode[reason ?? GoAwayCode.NormalTermination], err)
 
-    this.closeController.abort()
-
-    // Abort all underlying streams
-    for (const stream of this._streams.values()) {
-      stream.abort(err)
-    }
-
     // If a reason was given, send it to the other side, allow the other side to close gracefully
     if (reason != null) {
       this.sendGoAway(reason)
+    }
+
+    this._closeMuxer(err)
+  }
+
+  /**
+   * Called when either the local or remote shuts down the muxer
+   */
+  private _closeMuxer (err?: Error): void {
+    // stop the sink and any other processes
+    this.closeController.abort()
+
+    // reset all underlying streams
+    // not using abort because we expect a GoAway (muxer-level abort) has already been issued
+    for (const stream of this._streams.values()) {
+      stream.reset()
     }
 
     this.source.end(err)
@@ -302,7 +314,8 @@ export class YamuxMuxer implements StreamMuxer {
 
   private handleGoAway (reason: GoAwayCode): void {
     this.log?.('received GoAway reason=%s', GoAwayCode[reason] ?? 'unknown')
-    this.close()
+    this.remoteGoAway = reason
+    this._closeMuxer()
   }
 
   private async handleStreamMessage (header: FrameHeader, readData?: () => Promise<Uint8Array>): Promise<void> {
@@ -352,7 +365,7 @@ export class YamuxMuxer implements StreamMuxer {
 
     this.log?.('new incoming stream id=%s', id)
 
-    if (this.goAway.local !== undefined) {
+    if (this.localGoAway !== undefined) {
       // reject (reset) immediately if we are doing a go away
       return this.sendFrame({
         type: FrameType.WindowUpdate,
@@ -407,7 +420,7 @@ export class YamuxMuxer implements StreamMuxer {
 
   private sendGoAway (reason: GoAwayCode = GoAwayCode.NormalTermination): void {
     this.log?.('sending GoAway reason=%s', GoAwayCode[reason])
-    this.goAway.local = reason
+    this.localGoAway = reason
     this.sendFrame({
       type: FrameType.GoAway,
       flag: 0,
