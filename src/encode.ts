@@ -19,7 +19,6 @@ export function encodeFrame (header: FrameHeader, data?: Uint8Array): Uint8Array
   // always assume version 0
   // frameView.setUint8(0, header.version)
 
-  // TODO: more error checking
   frameView.setUint8(1, header.type)
   frameView.setUint16(2, header.flag, false)
   frameView.setUint32(4, header.streamID, false)

@@ -13,7 +13,6 @@ export function decodeHeader (buffer: Uint8ArrayList): FrameHeader {
   if (buffer.get(0) !== YAMUX_VERSION) {
     throw errcode(new Error('Invalid frame version'), ERR_DECODE_INVALID_VERSION)
   }
-  // TODO: more error checking
   return {
     type: buffer.getUint8(1),
     flag: buffer.getUint16(2, false),
