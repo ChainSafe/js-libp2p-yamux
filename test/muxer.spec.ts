@@ -101,9 +101,9 @@ describe('muxer', () => {
   it('test keep alive', async () => {
     const { client } = testClientServer({ enableKeepAlive: true, keepAliveInterval: 10 })
 
+    await sleep(10)
     client.pauseWrite()
-    void client.ping()
-    await sleep(15)
+    await sleep(30)
     client.unpauseWrite()
     await sleep(5)
 

@@ -141,12 +141,6 @@ export class YamuxStream implements Stream {
             data = data.subarray(toSend)
           }
         }
-      } catch (err: unknown) {
-        const errCode = (err as {code: string}).code
-        if (errCode !== ERR_STREAM_ABORT) {
-          this.log?.error('stream sink error id=%s', this._id, err)
-          throw err
-        }
       } finally {
         this.log?.('stream sink ended id=%s', this._id)
         this.closeWrite()
@@ -155,9 +149,17 @@ export class YamuxStream implements Stream {
   }
 
   private async * createSource () {
-    for await (const val of this.sourceInput) {
-      this.sendWindowUpdate()
-      yield val
+    try {
+      for await (const val of this.sourceInput) {
+        this.sendWindowUpdate()
+        yield val
+      }
+    } catch (err) {
+      const errCode = (err as {code: string}).code
+      if (errCode !== ERR_STREAM_ABORT && errCode !== ERR_STREAM_RESET) {
+        this.log?.error('stream source error id=%s', this._id, err)
+        throw err
+      }
     }
   }
 

@@ -145,7 +145,7 @@ export class YamuxMuxer implements StreamMuxer {
     this.log?.('muxer created')
 
     if (this.config.enableKeepAlive) {
-      void this.keepAliveLoop()
+      void this.keepAliveLoop().catch(e => this.log?.error('keepalive error: %s', e))
     }
   }
 
