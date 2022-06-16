@@ -1,6 +1,6 @@
-import type { Components } from '@libp2p/interfaces/components'
-import type { Stream } from '@libp2p/interfaces/connection'
-import type { StreamMuxer, StreamMuxerFactory, StreamMuxerInit } from '@libp2p/interfaces/stream-muxer'
+import type { Components } from '@libp2p/components'
+import type { Stream } from '@libp2p/interface-connection'
+import type { StreamMuxer, StreamMuxerFactory, StreamMuxerInit } from '@libp2p/interface-stream-muxer'
 import { abortableSource } from 'abortable-iterator'
 import { pipe } from 'it-pipe'
 import type { Sink, Source } from 'it-stream-types'
@@ -25,8 +25,14 @@ export interface YamuxMuxerInit extends StreamMuxerInit, Partial<Config> {
 
 export class Yamux implements StreamMuxerFactory {
   protocol = YAMUX_PROTOCOL_ID
-  createStreamMuxer (components: Components, init?: YamuxMuxerInit): YamuxMuxer {
-    return new YamuxMuxer(components, init)
+  private readonly components: Components
+
+  constructor (components: Components) {
+    this.components = components
+  }
+
+  createStreamMuxer (init?: YamuxMuxerInit): YamuxMuxer {
+    return new YamuxMuxer(this.components, init)
   }
 }
 
@@ -160,7 +166,7 @@ export class YamuxMuxer implements StreamMuxer {
 
     this.log?.('new outgoing stream id=%s', id)
 
-    const stream = this._newStream(id, name)
+    const stream = this._newStream(id, name, StreamState.Init, 'outbound')
     this._streams.set(id, stream)
 
     // send a window update to open the stream on the receiver end
@@ -276,7 +282,7 @@ export class YamuxMuxer implements StreamMuxer {
   }
 
   /** Create a new stream */
-  private _newStream (id: number, name?: string | undefined, state = StreamState.Init): YamuxStream {
+  private _newStream (id: number, name: string | undefined, state: StreamState, direction: 'inbound' | 'outbound'): YamuxStream {
     if (this._streams.get(id) != null) {
       throw errcode(new Error('Stream already exists'), ERR_STREAM_ALREADY_EXISTS, { id })
     }
@@ -285,6 +291,7 @@ export class YamuxMuxer implements StreamMuxer {
       id,
       name,
       state,
+      direction,
       sendFrame: this.sendFrame.bind(this),
       onStreamEnd: () => {
         this.closeStream(id)
@@ -452,7 +459,7 @@ export class YamuxMuxer implements StreamMuxer {
     }
 
     // allocate a new stream
-    const stream = this._newStream(id, undefined, StreamState.SYNReceived)
+    const stream = this._newStream(id, undefined, StreamState.SYNReceived, 'inbound')
 
     // check against our configured maximum number of incoming streams
     if (this.numIncomingStreams >= this.config.maxIncomingStreams) {

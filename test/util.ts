@@ -1,4 +1,4 @@
-import { Components } from '@libp2p/interfaces/components'
+import { Components } from '@libp2p/components'
 import { logger } from '@libp2p/logger'
 import type { Transform } from 'it-stream-types'
 import { duplexPair } from 'it-pair/duplex'
@@ -23,9 +23,9 @@ const isClient = (() => {
  * manually alternate setting `client` to true and false
  */
 export class TestYamux extends Yamux {
-  createStreamMuxer (components: Components, init?: YamuxMuxerInit): YamuxMuxer {
+  createStreamMuxer (init?: YamuxMuxerInit): YamuxMuxer {
     const client = isClient()
-    return super.createStreamMuxer(components, { ...init, client, log: logger(`libp2p:yamux${client ? 1 : 2}`) })
+    return super.createStreamMuxer({ ...init, client, log: logger(`libp2p:yamux${client ? 1 : 2}`) })
   }
 }
 

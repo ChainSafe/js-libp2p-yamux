@@ -1,4 +1,4 @@
-import type { Stream, Timeline } from '@libp2p/interfaces/connection'
+import type { Stream, StreamStat } from '@libp2p/interface-connection'
 import { pushable, Pushable } from 'it-pushable'
 import type { Sink, Source } from 'it-stream-types'
 import errcode from 'err-code'
@@ -31,13 +31,15 @@ export interface YamuxStreamInit {
   config: Config
   state: StreamState
   log?: Logger
+  direction: 'inbound' | 'outbound'
 }
 
 /** YamuxStream is used to represent a logical stream within a session */
 export class YamuxStream implements Stream {
   id: string
   name?: string
-  timeline: Timeline
+  stat: StreamStat
+  metadata: Record<string, any>
 
   state: StreamState
   /** Used to track received FIN/RST */
@@ -86,9 +88,13 @@ export class YamuxStream implements Stream {
     this._id = init.id
     this.id = String(init.id)
     this.name = init.name
-    this.timeline = {
-      open: Date.now()
+    this.stat = {
+      direction: init.direction,
+      timeline: {
+        open: Date.now()
+      }
     }
+    this.metadata = {}
 
     this.state = init.state
     this.readState = HalfStreamState.Open
@@ -342,7 +348,7 @@ export class YamuxStream implements Stream {
   private finish (): void {
     this.log?.('stream finished id=%s', this._id)
     this.state = StreamState.Finished
-    this.timeline.close = Date.now()
+    this.stat.timeline.close = Date.now()
     this.onStreamEnd()
   }
 
