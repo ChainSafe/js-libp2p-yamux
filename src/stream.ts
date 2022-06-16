@@ -4,7 +4,7 @@ import type { Sink, Source } from 'it-stream-types'
 import errcode from 'err-code'
 import { abortableSource } from 'abortable-iterator'
 import { Flag, FrameHeader, FrameType, HEADER_LENGTH } from './frame.js'
-import { ERR_RECV_WINDOW_EXCEEDED, INITIAL_STREAM_WINDOW } from './constants.js'
+import { ERR_RECV_WINDOW_EXCEEDED, ERR_STREAM_ABORT, ERR_STREAM_RESET, INITIAL_STREAM_WINDOW } from './constants.js'
 import type { Logger } from '@libp2p/logger'
 import type { Config } from './config.js'
 
@@ -32,9 +32,6 @@ export interface YamuxStreamInit {
   state: StreamState
   log?: Logger
 }
-
-const ERR_STREAM_RESET = 'ERR_STREAM_RESET'
-const ERR_STREAM_ABORT = 'ERR_STREAM_ABORT'
 
 /** YamuxStream is used to represent a logical stream within a session */
 export class YamuxStream implements Stream {

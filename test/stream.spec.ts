@@ -6,6 +6,8 @@ import { sleep, testClientServer } from './util.js'
 import { HalfStreamState, StreamState } from '../src/stream.js'
 import { Pushable, pushable } from 'it-pushable'
 import { defaultConfig } from '../src/config.js'
+import { ERR_STREAM_RESET } from '../src/constants.js'
+import { GoAwayCode } from '../src/frame.js'
 
 describe('stream', () => {
   it('test send data - small', async () => {
@@ -179,7 +181,7 @@ describe('stream', () => {
   })
 
   it('test window overflow', async () => {
-    const { client, server } = testClientServer({ initialStreamWindowSize: defaultConfig.initialStreamWindowSize })
+    const { client, server } = testClientServer({ maxMessageSize: defaultConfig.initialStreamWindowSize, initialStreamWindowSize: defaultConfig.initialStreamWindowSize })
     const { default: drain } = await import('it-drain')
 
     const p = pushable()
@@ -188,7 +190,6 @@ describe('stream', () => {
 
     const s1 = server.streams[0]
     const sendPipe = pipe(p, c1)
-    const recvPipe = pipe(s1, drain)
 
     // eslint-disable-next-line @typescript-eslint/dot-notation
     const c1SendData = c1['sendData'].bind(c1)
@@ -202,8 +203,19 @@ describe('stream', () => {
     p.push(new Uint8Array(defaultConfig.initialStreamWindowSize))
     p.push(new Uint8Array(defaultConfig.initialStreamWindowSize))
 
+    await sleep(10)
+
+    const recvPipe = pipe(s1, drain)
     p.end()
 
-    await Promise.all([sendPipe, recvPipe])
+    try {
+      await Promise.all([sendPipe, recvPipe])
+    } catch (e) {
+      expect((e as {code: string}).code).to.equal(ERR_STREAM_RESET)
+    }
+    // eslint-disable-next-line @typescript-eslint/dot-notation
+    expect(client['remoteGoAway']).to.equal(GoAwayCode.ProtocolError)
+    // eslint-disable-next-line @typescript-eslint/dot-notation
+    expect(server['localGoAway']).to.equal(GoAwayCode.ProtocolError)
   })
 })

@@ -170,7 +170,7 @@
     "err-code": "^3.0.1",
     "iso-random-stream": "^2.0.0",
     "it-pipe": "^2.0.3",
-    "it-pushable": "^2.0.1",
+    "it-pushable": "^3.0.0",
     "multiformats": "^9.4.5",
     "uint8arraylist": "^1.5.1",
     "uint8arrays": "^3.0.0"
