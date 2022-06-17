@@ -35,6 +35,8 @@ export class Decoder {
     for await (const chunk of this.source) {
       this.buffer.append(chunk)
 
+      // Loop to consume as many bytes from the buffer as possible
+      // Eg: when a single chunk contains several frames
       while (true) {
         const header = this.readHeader()
         if (header === undefined) {
@@ -43,6 +45,8 @@ export class Decoder {
 
         const { type, length } = header
         if (type === FrameType.Data) {
+          // If this is a data frame, the frame body must still be read
+          // `readData` must be called before the next iteration here
           yield {
             header,
             readData: async () => await this.readBytes(length)
