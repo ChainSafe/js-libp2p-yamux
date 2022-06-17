@@ -62,6 +62,9 @@ export function verifyConfig (config: Config): void {
   if (config.keepAliveInterval <= 0) {
     throw errcode(new Error('keep-alive interval must be positive'), ERR_INVALID_CONFIG)
   }
+  if (config.maxIncomingStreams < 0) {
+    throw errcode(new Error('max incoming streams must be larger or equal 0'), ERR_INVALID_CONFIG)
+  }
   if (config.initialStreamWindowSize < INITIAL_STREAM_WINDOW) {
     throw errcode(new Error('InitialStreamWindowSize must be larger or equal 256 kB'), ERR_INVALID_CONFIG)
   }
