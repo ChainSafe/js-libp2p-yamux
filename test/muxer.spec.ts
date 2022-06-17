@@ -108,8 +108,8 @@ describe('muxer', () => {
     client.close()
   })
 
-  it('test max incoming streams', async () => {
-    const { client, server } = testClientServer({ maxIncomingStreams: 1 })
+  it('test max inbound streams', async () => {
+    const { client, server } = testClientServer({ maxInboundStreams: 1 })
     client.newStream()
     client.newStream()
     await sleep(10)
@@ -118,14 +118,14 @@ describe('muxer', () => {
     expect(client.streams.length).to.equal(1)
   })
 
-  it('test max outgoing streams', async () => {
-    const { client, server } = testClientServer({ maxOutgoingStreams: 1 })
+  it('test max outbound streams', async () => {
+    const { client, server } = testClientServer({ maxOutboundStreams: 1 })
     client.newStream()
     await sleep(10)
 
     try {
       client.newStream()
-      expect.fail('stream creation should fail if exceeding maxOutgoingStreams')
+      expect.fail('stream creation should fail if exceeding maxOutboundStreams')
     } catch (e) {
       expect(server.streams.length).to.equal(1)
       expect(client.streams.length).to.equal(1)

@@ -11,7 +11,7 @@ import anySignal from 'any-signal'
 import { Flag, FrameHeader, FrameType, GoAwayCode, stringifyHeader } from './frame.js'
 import { StreamState, YamuxStream } from './stream.js'
 import { encodeFrame } from './encode.js'
-import { ERR_BOTH_CLIENTS, ERR_INVALID_FRAME, ERR_MAX_OUTGOING_STREAMS_EXCEEDED, ERR_MUXER_LOCAL_CLOSED, ERR_MUXER_REMOTE_CLOSED, ERR_NOT_MATCHING_PING, ERR_STREAM_ALREADY_EXISTS, ERR_UNREQUESTED_PING, PROTOCOL_ERRORS } from './constants.js'
+import { ERR_BOTH_CLIENTS, ERR_INVALID_FRAME, ERR_MAX_OUTBOUND_STREAMS_EXCEEDED, ERR_MUXER_LOCAL_CLOSED, ERR_MUXER_REMOTE_CLOSED, ERR_NOT_MATCHING_PING, ERR_STREAM_ALREADY_EXISTS, ERR_UNREQUESTED_PING, PROTOCOL_ERRORS } from './constants.js'
 import { Config, defaultConfig, verifyConfig } from './config.js'
 import { Decoder } from './decode.js'
 import type { Logger } from '@libp2p/logger'
@@ -66,10 +66,10 @@ export class YamuxMuxer implements StreamMuxer {
   private localGoAway?: GoAwayCode
   private remoteGoAway?: GoAwayCode
 
-  /** Number of tracked incoming streams */
-  private numIncomingStreams: number
-  /** Number of tracked outgoing streams */
-  private numOutgoingStreams: number
+  /** Number of tracked inbound streams */
+  private numInboundStreams: number
+  /** Number of tracked outbound streams */
+  private numOutboundStreams: number
 
   private readonly onIncomingStream?: (stream: Stream) => void
   private readonly onStreamEnd?: (stream: Stream) => void
@@ -136,8 +136,8 @@ export class YamuxMuxer implements StreamMuxer {
       this.close(reason, error)
     }
 
-    this.numIncomingStreams = 0
-    this.numOutgoingStreams = 0
+    this.numInboundStreams = 0
+    this.numOutboundStreams = 0
 
     // client uses odd streamIDs, server uses even streamIDs
     this.nextStreamID = this.client ? 1 : 2
@@ -167,9 +167,9 @@ export class YamuxMuxer implements StreamMuxer {
     const id = this.nextStreamID
     this.nextStreamID += 2
 
-    // check against our configured maximum number of outgoing streams
-    if (this.numOutgoingStreams >= this.config.maxOutgoingStreams) {
-      throw errcode(new Error('max outgoing streams exceeded'), ERR_MAX_OUTGOING_STREAMS_EXCEEDED)
+    // check against our configured maximum number of outbound streams
+    if (this.numOutboundStreams >= this.config.maxOutboundStreams) {
+      throw errcode(new Error('max outbound streams exceeded'), ERR_MAX_OUTBOUND_STREAMS_EXCEEDED)
     }
 
     this.log?.('new outgoing stream id=%s', id)
@@ -177,7 +177,7 @@ export class YamuxMuxer implements StreamMuxer {
     const stream = this._newStream(id, name, StreamState.Init, 'outbound')
     this._streams.set(id, stream)
 
-    this.numOutgoingStreams++
+    this.numOutboundStreams++
 
     // send a window update to open the stream on the receiver end
     stream.sendWindowUpdate()
@@ -321,9 +321,9 @@ export class YamuxMuxer implements StreamMuxer {
    */
   private closeStream (id: number): void {
     if (this.client === (id % 2 === 0)) {
-      this.numIncomingStreams--
+      this.numInboundStreams--
     } else {
-      this.numOutgoingStreams--
+      this.numOutboundStreams--
     }
     this._streams.delete(id)
   }
@@ -470,8 +470,8 @@ export class YamuxMuxer implements StreamMuxer {
       })
     }
 
-    // check against our configured maximum number of incoming streams
-    if (this.numIncomingStreams >= this.config.maxIncomingStreams) {
+    // check against our configured maximum number of inbound streams
+    if (this.numInboundStreams >= this.config.maxInboundStreams) {
       this.log?.('maxIncomingStreams exceeded, forcing stream reset')
       return this.sendFrame({
         type: FrameType.WindowUpdate,
@@ -484,7 +484,7 @@ export class YamuxMuxer implements StreamMuxer {
     // allocate a new stream
     const stream = this._newStream(id, undefined, StreamState.SYNReceived, 'inbound')
 
-    this.numIncomingStreams++
+    this.numInboundStreams++
     // the stream should now be tracked
     this._streams.set(id, stream)
 
