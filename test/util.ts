@@ -15,6 +15,10 @@ const isClient = (() => {
   }
 })()
 
+export const testConf: Partial<Config> = {
+  enableKeepAlive: false
+}
+
 /**
  * Yamux must be configured with a client setting `client` to true
  * and a server setting `client` to falsey
@@ -25,12 +29,8 @@ const isClient = (() => {
 export class TestYamux extends Yamux {
   createStreamMuxer (init?: YamuxMuxerInit): YamuxMuxer {
     const client = isClient()
-    return super.createStreamMuxer({ ...init, client, log: logger(`libp2p:yamux${client ? 1 : 2}`) })
+    return super.createStreamMuxer({ ...testConf, ...init, client, log: logger(`libp2p:yamux${client ? 1 : 2}`) })
   }
-}
-
-export const testConf: Partial<Config> = {
-  enableKeepAlive: false
 }
 
 export function testYamuxMuxer (name: string, client: boolean, conf: YamuxMuxerInit = {}) {
