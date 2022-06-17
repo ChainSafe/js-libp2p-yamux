@@ -30,6 +30,12 @@ export interface Config {
   maxIncomingStreams: number
 
   /**
+   * Maximum number of concurrent outgoing streams that we accept.
+   * If the application tries to open more streams, the call to `newStream` will throw
+   */
+  maxOutgoingStreams: number
+
+  /**
    * Used to control the initial window size that we allow for a stream.
    *
    * measured in bytes
@@ -53,6 +59,7 @@ export const defaultConfig: Config = {
   enableKeepAlive: true,
   keepAliveInterval: 30_000,
   maxIncomingStreams: 1_000,
+  maxOutgoingStreams: 1_000,
   initialStreamWindowSize: INITIAL_STREAM_WINDOW,
   maxStreamWindowSize: MAX_STREAM_WINDOW,
   maxMessageSize: 64 * 1024
@@ -64,6 +71,9 @@ export function verifyConfig (config: Config): void {
   }
   if (config.maxIncomingStreams < 0) {
     throw errcode(new Error('max incoming streams must be larger or equal 0'), ERR_INVALID_CONFIG)
+  }
+  if (config.maxOutgoingStreams < 0) {
+    throw errcode(new Error('max outgoing streams must be larger or equal 0'), ERR_INVALID_CONFIG)
   }
   if (config.initialStreamWindowSize < INITIAL_STREAM_WINDOW) {
     throw errcode(new Error('InitialStreamWindowSize must be larger or equal 256 kB'), ERR_INVALID_CONFIG)
