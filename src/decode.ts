@@ -32,7 +32,15 @@ export class Decoder {
   private frameInProgress: boolean
 
   constructor (source: Source<Uint8Array>) {
-    this.source = source
+    // Normally, when entering a for-await loop with an iterable/async iterable, the only ways to exit the loop are:
+    // 1. exhaust the iterable
+    // 2. throw an error - slow, undesireable if there's not actually an error
+    // 3. break or return - calls the iterable's `return` method, finalizing the iterable, no more iteration possible
+    //
+    // In this case, we want to enter (and exit) a for-await loop per chunked data frame and continue processing the iterable.
+    // To do this, we strip the `return` method from the iterator and can now `break` early and continue iterating.
+    // Exiting the main for-await is still possible via 1. and 2.
+    this.source = returnlessSource(source)
     this.buffer = new Uint8ArrayList()
     this.frameInProgress = false
   }
@@ -83,9 +91,14 @@ export class Decoder {
   }
 
   private async readBytes (length: number): Promise<Uint8Array> {
-    while (this.buffer.length < length) {
+    if (this.buffer.length < length) {
       for await (const chunk of this.source) {
         this.buffer.append(chunk)
+
+        if (this.buffer.length >= length) {
+          // see note above, the iterator is not `return`ed here
+          break
+        }
       }
     }
 
@@ -96,5 +109,26 @@ export class Decoder {
     this.frameInProgress = false
 
     return out
+  }
+}
+
+/**
+ * Strip the `return` method from a `Source`
+ */
+export function returnlessSource<T> (source: Source<T>): Source<T> {
+  if ((source as Iterable<T>)[Symbol.iterator] !== undefined) {
+    const iterator = (source as Iterable<T>)[Symbol.iterator]()
+    iterator.return = undefined
+    return {
+      [Symbol.iterator] () { return iterator }
+    }
+  } else if ((source as AsyncIterable<T>)[Symbol.asyncIterator] !== undefined) {
+    const iterator = (source as AsyncIterable<T>)[Symbol.asyncIterator]()
+    iterator.return = undefined
+    return {
+      [Symbol.asyncIterator] () { return iterator }
+    }
+  } else {
+    throw new Error('a source must be either an iterable or an async iterable')
   }
 }
