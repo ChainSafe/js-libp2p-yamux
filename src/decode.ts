@@ -45,6 +45,12 @@ export class Decoder {
     this.frameInProgress = false
   }
 
+  /**
+   * Emits frames from the decoder source.
+   *
+   * Note: If `readData` is emitted, it _must_ be called before the next iteration
+   * Otherwise an error is thrown
+   */
   async * emitFrames (): AsyncGenerator<{header: FrameHeader, readData?: () => Promise<Uint8Array>}> {
     for await (const chunk of this.source) {
       this.buffer.append(chunk)
