@@ -101,7 +101,7 @@ describe('muxer', () => {
   it('test keep alive', async () => {
     const { client } = testClientServer({ enableKeepAlive: true, keepAliveInterval: 10 })
 
-    await sleep(35)
+    await sleep(100)
 
     // eslint-disable-next-line @typescript-eslint/dot-notation
     expect(client['nextPingID']).to.be.gt(2)
