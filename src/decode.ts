@@ -1,7 +1,7 @@
 import { Uint8ArrayList } from 'uint8arraylist'
 import errcode from 'err-code'
 import { FrameHeader, FrameType, HEADER_LENGTH, YAMUX_VERSION } from './frame.js'
-import { ERR_DECODE_INVALID_VERSION } from './constants.js'
+import { ERR_DECODE_INVALID_VERSION, ERR_DECODE_IN_PROGRESS } from './constants.js'
 import type { Source } from 'it-stream-types'
 
 /**
@@ -21,14 +21,20 @@ export function decodeHeader (buffer: Uint8ArrayList): FrameHeader {
   }
 }
 
+/**
+ * Decodes yamux frames from a source
+ */
 export class Decoder {
+  private readonly source: Source<Uint8Array>
   /** Buffer for in-progress frames */
   private readonly buffer: Uint8ArrayList
-  private readonly source: Source<Uint8Array>
+  /** Used to sanity check against decoding while in an inconsistent state */
+  private frameInProgress: boolean
 
   constructor (source: Source<Uint8Array>) {
     this.source = source
     this.buffer = new Uint8ArrayList()
+    this.frameInProgress = false
   }
 
   async * emitFrames (): AsyncGenerator<{header: FrameHeader, readData?: () => Promise<Uint8Array>}> {
@@ -45,8 +51,9 @@ export class Decoder {
 
         const { type, length } = header
         if (type === FrameType.Data) {
-          // If this is a data frame, the frame body must still be read
+          // This is a data frame, the frame body must still be read
           // `readData` must be called before the next iteration here
+          this.frameInProgress = true
           yield {
             header,
             readData: async () => await this.readBytes(length)
@@ -59,6 +66,12 @@ export class Decoder {
   }
 
   private readHeader (): FrameHeader | undefined {
+    // Sanity check to ensure a header isn't read when another frame is partially decoded
+    // In practice this shouldn't happen
+    if (this.frameInProgress) {
+      throw errcode(new Error('decoding frame already in progress'), ERR_DECODE_IN_PROGRESS)
+    }
+
     if (this.buffer.length < HEADER_LENGTH) {
       // not enough data yet
       return
@@ -78,6 +91,10 @@ export class Decoder {
 
     const out = this.buffer.slice(0, length)
     this.buffer.consume(length)
+
+    // The next frame can now be decoded
+    this.frameInProgress = false
+
     return out
   }
 }
