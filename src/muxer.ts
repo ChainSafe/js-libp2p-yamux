@@ -1,4 +1,5 @@
-import type { Components } from '@libp2p/components'
+import { Components } from '@libp2p/components'
+import type { Initializable } from '@libp2p/components'
 import type { Stream } from '@libp2p/interface-connection'
 import type { StreamMuxer, StreamMuxerFactory, StreamMuxerInit } from '@libp2p/interface-stream-muxer'
 import { abortableSource } from 'abortable-iterator'
@@ -23,16 +24,24 @@ export interface YamuxMuxerInit extends StreamMuxerInit, Partial<Config> {
   client?: boolean
 }
 
-export class Yamux implements StreamMuxerFactory {
+export class Yamux implements StreamMuxerFactory, Initializable {
   protocol = YAMUX_PROTOCOL_ID
-  private readonly components: Components
+  private components = new Components()
+  private readonly _init: YamuxMuxerInit
 
-  constructor (components: Components) {
+  constructor (init: YamuxMuxerInit = {}) {
+    this._init = init
+  }
+
+  init (components: Components): void {
     this.components = components
   }
 
   createStreamMuxer (init?: YamuxMuxerInit): YamuxMuxer {
-    return new YamuxMuxer(this.components, init)
+    return new YamuxMuxer(this.components, {
+      ...this._init,
+      ...init
+    })
   }
 }
 
