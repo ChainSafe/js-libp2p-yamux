@@ -100,7 +100,7 @@ export class YamuxMuxer implements StreamMuxer {
     this.source = pushable({
       onEnd: (err?: Error): void => {
         this.log?.('muxer source ended')
-        this.close(err != null ? GoAwayCode.InternalError : GoAwayCode.NormalTermination, err)
+        this.close(err)
       }
     })
 
@@ -142,7 +142,7 @@ export class YamuxMuxer implements StreamMuxer {
 
       this.log?.('muxer sink ended')
 
-      this.close(reason, error)
+      this.close(error, reason)
     }
 
     this.numInboundStreams = 0
@@ -263,16 +263,30 @@ export class YamuxMuxer implements StreamMuxer {
   /**
    * Close the muxer
    *
+   * @param err
    * @param reason - The GoAway reason to be sent
-   * @param err - Provided for logging purposes
    */
-  close (reason = GoAwayCode.NormalTermination, err?: Error): void {
+  close (err?: Error, reason?: GoAwayCode): void {
     if (this.closeController.signal.aborted) {
       // already closed
       return
     }
 
-    this.log?.('muxer close reason=%s error=%s', GoAwayCode[reason ?? GoAwayCode.NormalTermination], err)
+    // If reason was provided, use that, otherwise use the presence of `err` to determine the reason
+    reason = reason ?? (err === undefined ? GoAwayCode.InternalError : GoAwayCode.NormalTermination)
+
+    this.log?.('muxer close reason=%s error=%s', GoAwayCode[reason], err)
+
+    // If err is provided, abort all underlying streams, else close all underlying streams
+    if (err === undefined) {
+      for (const stream of this._streams.values()) {
+        stream.close()
+      }
+    } else {
+      for (const stream of this._streams.values()) {
+        stream.abort(err)
+      }
+    }
 
     // send reason to the other side, allow the other side to close gracefully
     this.sendGoAway(reason)
@@ -291,12 +305,7 @@ export class YamuxMuxer implements StreamMuxer {
     // stop the sink and any other processes
     this.closeController.abort()
 
-    // reset all underlying streams
-    // not using abort because we expect a GoAway (muxer-level abort) has already been issued
-    for (const stream of this._streams.values()) {
-      stream.reset()
-    }
-
+    // stop the source
     this.source.end()
   }
 
@@ -419,6 +428,13 @@ export class YamuxMuxer implements StreamMuxer {
   private handleGoAway (reason: GoAwayCode): void {
     this.log?.('received GoAway reason=%s', GoAwayCode[reason] ?? 'unknown')
     this.remoteGoAway = reason
+
+    // If the other side is friendly, they would have already closed all streams before sending a GoAway
+    // In case they weren't, reset all streams
+    for (const stream of this._streams.values()) {
+      stream.reset()
+    }
+
     this._closeMuxer()
   }
 
