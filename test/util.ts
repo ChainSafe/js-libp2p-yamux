@@ -29,7 +29,7 @@ export const testConf: Partial<Config> = {
 export class TestYamux extends Yamux {
   createStreamMuxer (init?: YamuxMuxerInit): YamuxMuxer {
     const client = isClient()
-    return super.createStreamMuxer({ ...testConf, ...init, client, log: logger(`libp2p:yamux${client ? 1 : 2}`) })
+    return super.createStreamMuxer({ ...testConf, ...init, direction: client ? 'outbound' : 'inbound', log: logger(`libp2p:yamux${client ? 1 : 2}`) })
   }
 }
 
@@ -37,7 +37,7 @@ export function testYamuxMuxer (name: string, client: boolean, conf: YamuxMuxerI
   return new YamuxMuxer(new Components(), {
     ...testConf,
     ...conf,
-    client,
+    direction: client ? 'outbound' : 'inbound',
     log: logger(name)
   })
 }

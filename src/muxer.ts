@@ -21,7 +21,7 @@ const YAMUX_PROTOCOL_ID = '/yamux/1.0.0'
 
 export interface YamuxMuxerInit extends StreamMuxerInit, Partial<Config> {
   /** True if client, false if server */
-  client?: boolean
+  direction?: 'inbound' | 'outbound'
 }
 
 export class Yamux implements StreamMuxerFactory, Initializable {
@@ -39,6 +39,7 @@ export class Yamux implements StreamMuxerFactory, Initializable {
 
   createStreamMuxer (init?: YamuxMuxerInit): YamuxMuxer {
     return new YamuxMuxer(this.components, {
+      direction: 'inbound',
       ...this._init,
       ...init
     })
@@ -83,9 +84,9 @@ export class YamuxMuxer implements StreamMuxer {
   private readonly onIncomingStream?: (stream: Stream) => void
   private readonly onStreamEnd?: (stream: Stream) => void
 
-  constructor (components: Components, init: YamuxMuxerInit = {}) {
+  constructor (components: Components, init: YamuxMuxerInit) {
     this._init = init
-    this.client = Boolean(init.client)
+    this.client = init.direction === 'outbound'
     this.config = { ...defaultConfig, ...init }
     this.log = this.config.log
     verifyConfig(this.config)
