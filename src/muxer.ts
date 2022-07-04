@@ -130,7 +130,7 @@ export class YamuxMuxer implements StreamMuxer {
       } catch (err: unknown) {
         // either a protocol or internal error
         const errCode = (err as {code: string}).code
-        if (PROTOCOL_ERRORS.includes(errCode)) {
+        if (PROTOCOL_ERRORS.has(errCode)) {
           this.log?.error('protocol error in sink', err)
           reason = GoAwayCode.ProtocolError
         } else {
@@ -158,7 +158,7 @@ export class YamuxMuxer implements StreamMuxer {
     this.log?.('muxer created')
 
     if (this.config.enableKeepAlive) {
-      void this.keepAliveLoop().catch(e => this.log?.error('keepalive error: %s', e))
+      this.keepAliveLoop().catch(e => this.log?.error('keepalive error: %s', e))
     }
   }
 
@@ -328,7 +328,7 @@ export class YamuxMuxer implements StreamMuxer {
       },
       log: this.log,
       config: this.config,
-      getRTT: () => this.rtt
+      getRTT: this.getRTT.bind(this)
     })
 
     return stream
@@ -359,7 +359,7 @@ export class YamuxMuxer implements StreamMuxer {
             timeoutId = setTimeout(resolve, this.config.keepAliveInterval)
           })
         ])
-        void this.ping().catch(e => this.log?.error('ping error: %s', e))
+        this.ping().catch(e => this.log?.error('ping error: %s', e))
       } catch (e) {
         // closed
         clearInterval(timeoutId)

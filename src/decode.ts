@@ -70,7 +70,7 @@ export class Decoder {
           this.frameInProgress = true
           yield {
             header,
-            readData: async () => await this.readBytes(length)
+            readData: this.readBytes.bind(this, length)
           }
         } else {
           yield { header }
