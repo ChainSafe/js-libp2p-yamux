@@ -14,15 +14,23 @@ export function encodeFrame (header: FrameHeader, data?: Uint8Array): Uint8Array
     frame = new Uint8Array(HEADER_LENGTH)
   }
 
-  const frameView = new DataView(frame.buffer)
-
   // always assume version 0
   // frameView.setUint8(0, header.version)
 
-  frameView.setUint8(1, header.type)
-  frameView.setUint16(2, header.flag, false)
-  frameView.setUint32(4, header.streamID, false)
-  frameView.setUint32(8, header.length, false)
+  frame[1] = header.type
+
+  frame[2] = header.flag >>> 8 & 255
+  frame[3] = header.flag & 255
+
+  frame[4] = header.streamID >>> 24 & 255
+  frame[5] = header.streamID >>> 16 & 255
+  frame[6] = header.streamID >>> 8 & 255
+  frame[7] = header.streamID & 255
+
+  frame[8] = header.length >>> 24 & 255
+  frame[9] = header.length >>> 16 & 255
+  frame[10] = header.length >>> 8 & 255
+  frame[11] = header.length & 255
 
   return frame
 }

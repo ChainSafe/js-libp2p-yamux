@@ -4,20 +4,24 @@ import { FrameHeader, FrameType, HEADER_LENGTH, YAMUX_VERSION } from './frame.js
 import { ERR_DECODE_INVALID_VERSION, ERR_DECODE_IN_PROGRESS } from './constants.js'
 import type { Source } from 'it-stream-types'
 
+// used to bitshift in decoding
+// native bitshift can overflow into a negative number, so we bitshift by multiplying by a power of 2
+const twoPow24 = 2 ** 24
+
 /**
  * Decode a header from the front of a buffer
  *
- * @param buffer - Assumed to have enough bytes for a header
+ * @param data - Assumed to have enough bytes for a header
  */
-export function decodeHeader (buffer: Uint8ArrayList): FrameHeader {
-  if (buffer.get(0) !== YAMUX_VERSION) {
+export function decodeHeader (data: Uint8Array): FrameHeader {
+  if (data[0] !== YAMUX_VERSION) {
     throw errcode(new Error('Invalid frame version'), ERR_DECODE_INVALID_VERSION)
   }
   return {
-    type: buffer.getUint8(1),
-    flag: buffer.getUint16(2, false),
-    streamID: buffer.getUint32(4, false),
-    length: buffer.getUint32(8, false)
+    type: data[1],
+    flag: (data[2] << 8) + data[3],
+    streamID: (data[4] * twoPow24) + (data[5] << 16) + (data[6] << 8) + data[7],
+    length: (data[8] * twoPow24) + (data[9] << 16) + (data[10] << 8) + data[11]
   }
 }
 
@@ -91,7 +95,7 @@ export class Decoder {
       return
     }
 
-    const header = decodeHeader(this.buffer)
+    const header = decodeHeader(this.buffer.slice(0, HEADER_LENGTH))
     this.buffer.consume(HEADER_LENGTH)
     return header
   }
