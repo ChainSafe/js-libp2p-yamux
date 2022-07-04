@@ -20,8 +20,6 @@ import type { Logger } from '@libp2p/logger'
 const YAMUX_PROTOCOL_ID = '/yamux/1.0.0'
 
 export interface YamuxMuxerInit extends StreamMuxerInit, Partial<Config> {
-  /** True if client, false if server */
-  direction?: 'inbound' | 'outbound'
 }
 
 export class Yamux implements StreamMuxerFactory, Initializable {
@@ -39,7 +37,6 @@ export class Yamux implements StreamMuxerFactory, Initializable {
 
   createStreamMuxer (init?: YamuxMuxerInit): YamuxMuxer {
     return new YamuxMuxer(this.components, {
-      direction: 'inbound',
       ...this._init,
       ...init
     })
