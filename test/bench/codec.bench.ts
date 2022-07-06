@@ -10,13 +10,13 @@ describe('codec benchmark', () => {
     { encode: encodeFrameNaive, name: 'encodeFrameNaive' }
   ]) {
     itBench<FrameHeader, undefined>({
-      id: `encode a frame header - ${name}`,
+      id: `frame header - ${name}`,
       beforeEach: () => {
         return {
           type: FrameType.WindowUpdate,
           flag: Flag.ACK,
-          streamID: Math.round(Math.random() * 2 ** 32),
-          length: Math.round(Math.random() * 2 ** 32)
+          streamID: 0xffffffff,
+          length: 0xffffffff
         }
       },
       fn: (header) => {
@@ -30,11 +30,11 @@ describe('codec benchmark', () => {
     { decode: decodeHeaderNaive, name: 'decodeHeaderNaive' }
   ]) {
     itBench<Uint8Array, undefined>({
-      id: `decode a frame header - ${name}`,
+      id: `frame header ${name}`,
       beforeEach: () => {
         const header = new Uint8Array(12)
         for (let i = 1; i < 12; i++) {
-          header[i] = Math.round(Math.random() * 255)
+          header[i] = 255
         }
         return header
       },
