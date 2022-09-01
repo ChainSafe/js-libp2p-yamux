@@ -3,6 +3,7 @@ import { pushable, Pushable } from 'it-pushable'
 import type { Sink, Source } from 'it-stream-types'
 import errcode from 'err-code'
 import { abortableSource } from 'abortable-iterator'
+import type { Uint8ArrayList } from 'uint8arraylist'
 import { Flag, FrameHeader, FrameType, HEADER_LENGTH } from './frame.js'
 import { ERR_RECV_WINDOW_EXCEEDED, ERR_STREAM_ABORT, ERR_STREAM_RESET, INITIAL_STREAM_WINDOW } from './constants.js'
 import type { Logger } from '@libp2p/logger'
@@ -48,11 +49,11 @@ export class YamuxStream implements Stream {
   writeState: HalfStreamState
 
   /** Input to the read side of the stream */
-  sourceInput: Pushable<Uint8Array>;
+  sourceInput: Pushable<Uint8ArrayList>;
   /** Read side of the stream */
-  source: Source<Uint8Array>;
+  source: Source<Uint8ArrayList>;
   /** Write side of the stream */
-  sink: Sink<Uint8Array>;
+  sink: Sink<Uint8Array | Uint8ArrayList>;
 
   private readonly config: Config
   private readonly log?: Logger
@@ -120,7 +121,7 @@ export class YamuxStream implements Stream {
 
     this.source = this.createSource()
 
-    this.sink = async (source: Source<Uint8Array>): Promise<void> => {
+    this.sink = async (source: Source<Uint8Array | Uint8ArrayList>): Promise<void> => {
       if (this.writeState !== HalfStreamState.Open) {
         throw new Error('stream closed for writing')
       }
@@ -313,7 +314,7 @@ export class YamuxStream implements Stream {
   /**
    * handleData is called when the stream receives a data frame
    */
-  async handleData (header: FrameHeader, readData: () => Promise<Uint8Array>): Promise<void> {
+  async handleData (header: FrameHeader, readData: () => Promise<Uint8ArrayList>): Promise<void> {
     this.log?.('stream received data id=%s', this._id)
     this.processFlags(header.flag)
 

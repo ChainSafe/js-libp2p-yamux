@@ -7,6 +7,7 @@ import { encodeFrame } from '../src/encode.js'
 import { Flag, FrameHeader, FrameType, GoAwayCode } from '../src/frame.js'
 import { timeout } from './util.js'
 import { ERR_DECODE_IN_PROGRESS } from '../src/constants.js'
+import type { Uint8ArrayList } from 'uint8arraylist'
 
 const frames: Array<{header: FrameHeader, data?: Uint8Array}> = [
   { header: { type: FrameType.Ping, flag: Flag.SYN, streamID: 0, length: 1 } },
@@ -18,6 +19,32 @@ const frames: Array<{header: FrameHeader, data?: Uint8Array}> = [
 ]
 
 const data = (length: number) => Uint8Array.from(Array.from({ length }), (_, i) => i)
+
+const expectEqualBytes = (actual: Uint8Array | Uint8ArrayList, expected: Uint8Array | Uint8ArrayList, reason?: string) => {
+  expect(actual instanceof Uint8Array ? actual : actual.subarray(), reason).to.deep.equal(expected instanceof Uint8Array ? expected : expected.subarray())
+}
+
+const expectEqualDataFrame = (actual: {header: FrameHeader, data?: Uint8Array | Uint8ArrayList}, expected: {header: FrameHeader, data?: Uint8Array | Uint8ArrayList}, reason = '') => {
+  expect(actual.header, reason + ' header').to.deep.equal(expected.header)
+  if (actual.data == null && expected.data != null) {
+    expect.fail('actual has no data but expected does')
+  }
+  if (actual.data != null && expected.data == null) {
+    expect.fail('actual has data but expected does not')
+  }
+  if (actual.data != null && expected.data != null) {
+    expectEqualBytes(actual.data, expected.data, reason + ' data?: string')
+  }
+}
+
+const expectEqualDataFrames = (actual: Array<{header: FrameHeader, data?: Uint8Array | Uint8ArrayList}>, expected: Array<{header: FrameHeader, data?: Uint8Array | Uint8ArrayList}>) => {
+  if (actual.length !== expected.length) {
+    expect.fail('actual')
+  }
+  for (let i = 0; i < actual.length; i++) {
+    expectEqualDataFrame(actual[i], expected[i], String(i))
+  }
+}
 
 const dataFrame = (length: number) => ({
   header: { type: FrameType.Data, flag: 0, streamID: 1, length },
@@ -103,7 +130,7 @@ describe('Decoder internals', () => {
         expect.fail('readBytes timed out')
       }
 
-      expect(actual, 'read bytes should equal input').to.deep.equal(data(requested))
+      expectEqualBytes(actual as Uint8ArrayList, data(requested), 'read bytes should equal input')
       expect(d['buffer'].length, 'buffer should be drained').to.deep.equal(0)
     })
 
@@ -119,7 +146,7 @@ describe('Decoder internals', () => {
         expect.fail('readBytes timed out')
       }
 
-      expect(actual, 'read bytes should equal input').to.deep.equal(data(requested))
+      expectEqualBytes(actual as Uint8ArrayList, data(requested), 'read bytes should equal input')
       expect(d['buffer'].length, 'buffer should be partially drained').to.deep.equal(requested)
     })
 
@@ -135,7 +162,7 @@ describe('Decoder internals', () => {
         expect.fail('readBytes timed out')
       }
 
-      expect(actual, 'read bytes should equal input').to.deep.equal(data(requested))
+      expectEqualBytes(actual as Uint8ArrayList, data(requested), 'read bytes should equal input')
       expect(d['buffer'].length, 'buffer should be drained').to.deep.equal(0)
     })
 
@@ -187,7 +214,7 @@ describe('Decoder', () => {
         }
       }
 
-      expect(actual).to.deep.equal(expected)
+      expectEqualDataFrames(actual, expected)
     })
 
     it('should emit frames from source chunked by partial frame', async () => {
@@ -222,7 +249,7 @@ describe('Decoder', () => {
       }
 
       expect(p.readableLength).to.equal(0)
-      expect(actual).to.deep.equal(expected)
+      expectEqualDataFrames(actual, expected)
     })
 
     it('should emit frames from source chunked by multiple frames', async () => {
@@ -258,7 +285,7 @@ describe('Decoder', () => {
         }
       }
 
-      expect(actual).to.deep.equal(expected)
+      expectEqualDataFrames(actual, expected)
     })
 
     it('should emit frames from source chunked chaoticly', async () => {
@@ -299,7 +326,7 @@ describe('Decoder', () => {
         }
       }
 
-      expect(actual).to.deep.equal(expected)
+      expectEqualDataFrames(actual, expected)
     })
 
     it('should error decoding frame while another decode is in progress', async () => {

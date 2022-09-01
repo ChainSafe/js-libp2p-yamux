@@ -55,7 +55,7 @@ export class Decoder {
    * Note: If `readData` is emitted, it _must_ be called before the next iteration
    * Otherwise an error is thrown
    */
-  async * emitFrames (): AsyncGenerator<{header: FrameHeader, readData?: () => Promise<Uint8Array>}> {
+  async * emitFrames (): AsyncGenerator<{header: FrameHeader, readData?: () => Promise<Uint8ArrayList>}> {
     for await (const chunk of this.source) {
       this.buffer.append(chunk)
 
@@ -100,7 +100,7 @@ export class Decoder {
     return header
   }
 
-  private async readBytes (length: number): Promise<Uint8Array> {
+  private async readBytes (length: number): Promise<Uint8ArrayList> {
     if (this.buffer.length < length) {
       for await (const chunk of this.source) {
         this.buffer.append(chunk)
@@ -112,7 +112,7 @@ export class Decoder {
       }
     }
 
-    const out = this.buffer.slice(0, length)
+    const out = this.buffer.sublist(0, length)
     this.buffer.consume(length)
 
     // The next frame can now be decoded

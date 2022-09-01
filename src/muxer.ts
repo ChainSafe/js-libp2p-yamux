@@ -16,6 +16,7 @@ import { ERR_BOTH_CLIENTS, ERR_INVALID_FRAME, ERR_MAX_OUTBOUND_STREAMS_EXCEEDED,
 import { Config, defaultConfig, verifyConfig } from './config.js'
 import { Decoder } from './decode.js'
 import type { Logger } from '@libp2p/logger'
+import type { Uint8ArrayList } from 'uint8arraylist'
 
 const YAMUX_PROTOCOL_ID = '/yamux/1.0.0'
 
@@ -365,7 +366,7 @@ export class YamuxMuxer implements StreamMuxer {
     }
   }
 
-  private async handleFrame (header: FrameHeader, readData?: () => Promise<Uint8Array>): Promise<void> {
+  private async handleFrame (header: FrameHeader, readData?: () => Promise<Uint8ArrayList>): Promise<void> {
     const {
       streamID,
       type,
@@ -436,7 +437,7 @@ export class YamuxMuxer implements StreamMuxer {
     this._closeMuxer()
   }
 
-  private async handleStreamMessage (header: FrameHeader, readData?: () => Promise<Uint8Array>): Promise<void> {
+  private async handleStreamMessage (header: FrameHeader, readData?: () => Promise<Uint8ArrayList>): Promise<void> {
     const { streamID, flag, type } = header
 
     if ((flag & Flag.SYN) === Flag.SYN) {
