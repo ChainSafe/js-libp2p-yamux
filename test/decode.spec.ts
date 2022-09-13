@@ -3,7 +3,7 @@ import { Pushable, pushable } from 'it-pushable'
 import { expect } from 'aegir/chai'
 
 import { Decoder } from '../src/decode.js'
-import { encodeFrame } from '../src/encode.js'
+import { encodeHeader } from '../src/encode.js'
 import { Flag, FrameHeader, FrameType, GoAwayCode } from '../src/frame.js'
 import { timeout } from './util.js'
 import { ERR_DECODE_IN_PROGRESS } from '../src/constants.js'
@@ -79,7 +79,7 @@ describe('Decoder internals', () => {
     })
 
     it('should handle buffer length == header length', async () => {
-      d['buffer'].append(encodeFrame(frame.header))
+      d['buffer'].append(encodeHeader(frame.header))
 
       expect(d['readHeader'](), 'the decoded header should match the input').to.deep.equal(frame.header)
       expect(d['buffer'].length, 'the buffer should be fully drained').to.equal(0)
@@ -88,12 +88,12 @@ describe('Decoder internals', () => {
     it('should handle buffer length < header length', async () => {
       const upTo = 2
 
-      d['buffer'].append(encodeFrame(frame.header).slice(0, upTo))
+      d['buffer'].append(encodeHeader(frame.header).slice(0, upTo))
 
       expect(d['readHeader'](), 'an buffer that has insufficient bytes should read no header').to.equal(undefined)
       expect(d['buffer'].length, 'a buffer that has insufficient bytes should not be consumed').to.equal(upTo)
 
-      d['buffer'].append(encodeFrame(frame.header).slice(upTo))
+      d['buffer'].append(encodeHeader(frame.header).slice(upTo))
 
       expect(d['readHeader'](), 'the decoded header should match the input').to.deep.equal(frame.header)
       expect(d['buffer'].length, 'the buffer should be fully drained').to.equal(0)
@@ -102,7 +102,7 @@ describe('Decoder internals', () => {
     it('should handle buffer length > header length', async () => {
       const more = 10
 
-      d['buffer'].append(encodeFrame(frame.header))
+      d['buffer'].append(encodeHeader(frame.header))
       d['buffer'].append(new Uint8Array(more))
 
       expect(d['readHeader'](), 'the decoded header should match the input').to.deep.equal(frame.header)
@@ -193,13 +193,14 @@ describe('Decoder', () => {
     it('should emit frames from source chunked by frame', async () => {
       const expected = []
       for (const [i, frame] of frames.entries()) {
-        p.push(encodeFrame(frame.header))
+        p.push(encodeHeader(frame.header))
         expected.push(frame)
 
         // sprinkle in more data frames
         if (i % 2 === 1) {
           const df = dataFrame(i * 100)
-          p.push(encodeFrame(df.header, df.data))
+          p.push(encodeHeader(df.header))
+          p.push(df.data)
           expected.push(df)
         }
       }
@@ -221,7 +222,7 @@ describe('Decoder', () => {
       const chunkSize = 5
       const expected = []
       for (const [i, frame] of frames.entries()) {
-        const encoded = encodeFrame(frame.header)
+        const encoded = encodeHeader(frame.header)
         for (let i = 0; i < encoded.length; i += chunkSize) {
           p.push(encoded.slice(i, i + chunkSize))
         }
@@ -230,7 +231,7 @@ describe('Decoder', () => {
         // sprinkle in more data frames
         if (i % 2 === 1) {
           const df = dataFrame(i * 100)
-          const encoded = encodeFrame(df.header, df.data)
+          const encoded = Uint8Array.from([...encodeHeader(df.header), ...df.data])
           for (let i = 0; i < encoded.length; i += chunkSize) {
             p.push(encoded.slice(i, i + chunkSize))
           }
@@ -255,16 +256,16 @@ describe('Decoder', () => {
     it('should emit frames from source chunked by multiple frames', async () => {
       const expected = []
       for (let i = 0; i < frames.length; i++) {
-        const encoded1 = encodeFrame(frames[i].header)
+        const encoded1 = encodeHeader(frames[i].header)
         expected.push(frames[i])
 
         i++
-        const encoded2 = encodeFrame(frames[i].header)
+        const encoded2 = encodeHeader(frames[i].header)
         expected.push(frames[i])
 
         // sprinkle in more data frames
         const df = dataFrame(i * 100)
-        const encoded3 = encodeFrame(df.header, df.data)
+        const encoded3 = Uint8Array.from([...encodeHeader(df.header), ...df.data])
         expected.push(df)
 
         const encodedChunk = new Uint8Array(encoded1.length + encoded2.length + encoded3.length)
@@ -292,13 +293,14 @@ describe('Decoder', () => {
       const expected = []
       const encodedFrames = []
       for (const [i, frame] of frames.entries()) {
-        encodedFrames.push(encodeFrame(frame.header))
+        encodedFrames.push(encodeHeader(frame.header))
         expected.push(frame)
 
         // sprinkle in more data frames
         if (i % 2 === 1) {
           const df = dataFrame(i * 100)
-          encodedFrames.push(encodeFrame(df.header, df.data))
+          encodedFrames.push(encodeHeader(df.header))
+          encodedFrames.push(df.data)
           expected.push(df)
         }
       }
@@ -331,9 +333,11 @@ describe('Decoder', () => {
 
     it('should error decoding frame while another decode is in progress', async () => {
       const df1 = dataFrame(100)
-      p.push(encodeFrame(df1.header, df1.data))
+      p.push(encodeHeader(df1.header))
+      p.push(df1.data)
       const df2 = dataFrame(100)
-      p.push(encodeFrame(df2.header, df2.data))
+      p.push(encodeHeader(df2.header))
+      p.push(df2.data)
 
       try {
         for await (const frame of d.emitFrames()) {

@@ -1,9 +1,9 @@
 import { expect } from 'aegir/chai'
 
 import { decodeHeader } from '../src/decode.js'
-import { encodeFrame } from '../src/encode.js'
+import { encodeHeader } from '../src/encode.js'
 import { Flag, FrameHeader, FrameType, GoAwayCode, stringifyHeader } from '../src/frame.js'
-import { decodeHeaderNaive, encodeFrameNaive } from './codec.util.js'
+import { decodeHeaderNaive, encodeHeaderNaive } from './codec.util.js'
 
 const frames: Array<{header: FrameHeader, data?: Uint8Array}> = [
   { header: { type: FrameType.Ping, flag: Flag.SYN, streamID: 0, length: 1 } },
@@ -18,14 +18,14 @@ const frames: Array<{header: FrameHeader, data?: Uint8Array}> = [
 describe('codec', () => {
   for (const { header } of frames) {
     it(`should round trip encode/decode header ${stringifyHeader(header)}`, () => {
-      expect(decodeHeader(encodeFrame(header))).to.deep.equal(header)
+      expect(decodeHeader(encodeHeader(header))).to.deep.equal(header)
     })
   }
 
   for (const { header } of frames) {
     it(`should match naive implementations of encode/decode for header ${stringifyHeader(header)}`, () => {
-      expect(encodeFrame(header)).to.deep.equal(encodeFrameNaive(header))
-      expect(decodeHeader(encodeFrame(header))).to.deep.equal(decodeHeaderNaive(encodeFrameNaive(header)))
+      expect(encodeHeader(header)).to.deep.equal(encodeHeaderNaive(header))
+      expect(decodeHeader(encodeHeader(header))).to.deep.equal(decodeHeaderNaive(encodeHeaderNaive(header)))
     })
   }
 })
