@@ -1,6 +1,6 @@
 import errcode from 'err-code'
-import { ERR_DECODE_INVALID_VERSION, ERR_INVALID_FRAME } from '../src/constants.js'
-import { FrameHeader, FrameType, HEADER_LENGTH, YAMUX_VERSION } from '../src/frame.js'
+import { ERR_DECODE_INVALID_VERSION } from '../src/constants.js'
+import { FrameHeader, HEADER_LENGTH, YAMUX_VERSION } from '../src/frame.js'
 
 // Slower encode / decode functions that use dataview
 
@@ -18,17 +18,8 @@ export function decodeHeaderNaive (data: Uint8Array): FrameHeader {
   }
 }
 
-export function encodeFrameNaive (header: FrameHeader, data?: Uint8Array): Uint8Array {
-  let frame
-  if (header.type === FrameType.Data) {
-    if (data == null) {
-      throw errcode(new Error('Invalid frame'), ERR_INVALID_FRAME, { header, data })
-    }
-    frame = new Uint8Array(HEADER_LENGTH + header.length)
-    frame.set(data, HEADER_LENGTH)
-  } else {
-    frame = new Uint8Array(HEADER_LENGTH)
-  }
+export function encodeHeaderNaive (header: FrameHeader): Uint8Array {
+  const frame = new Uint8Array(HEADER_LENGTH)
 
   const frameView = new DataView(frame.buffer, frame.byteOffset, frame.byteLength)
 

@@ -11,7 +11,7 @@ import errcode from 'err-code'
 import anySignal from 'any-signal'
 import { Flag, FrameHeader, FrameType, GoAwayCode, stringifyHeader } from './frame.js'
 import { StreamState, YamuxStream } from './stream.js'
-import { encodeFrame } from './encode.js'
+import { encodeHeader } from './encode.js'
 import { ERR_BOTH_CLIENTS, ERR_INVALID_FRAME, ERR_MAX_OUTBOUND_STREAMS_EXCEEDED, ERR_MUXER_LOCAL_CLOSED, ERR_MUXER_REMOTE_CLOSED, ERR_NOT_MATCHING_PING, ERR_STREAM_ALREADY_EXISTS, ERR_UNREQUESTED_PING, PROTOCOL_ERRORS } from './constants.js'
 import { Config, defaultConfig, verifyConfig } from './config.js'
 import { Decoder } from './decode.js'
@@ -517,7 +517,15 @@ export class YamuxMuxer implements StreamMuxer {
 
   private sendFrame (header: FrameHeader, data?: Uint8Array): void {
     this.log?.trace('sending frame %s', stringifyHeader(header))
-    this.source.push(encodeFrame(header, data))
+    if (header.type === FrameType.Data) {
+      if (data === undefined) {
+        throw errcode(new Error('invalid frame'), ERR_INVALID_FRAME)
+      }
+      this.source.push(encodeHeader(header))
+      this.source.push(data)
+    } else {
+      this.source.push(encodeHeader(header))
+    }
   }
 
   private sendPing (pingId: number, flag: Flag = Flag.SYN): void {
