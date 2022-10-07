@@ -27,7 +27,7 @@ describe('comparison benchmark', () => {
           }
         }),
         fn: async ({ client, server }) => {
-          const stream = client.newStream()
+          const stream = await client.newStream()
           await pipe(Array.from({ length: numMessages }, () => new Uint8Array(msgSize)), stream, drain)
         }
       })
