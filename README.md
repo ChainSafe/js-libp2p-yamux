@@ -1,21 +1,24 @@
-# js-libp2p-yamux
+# @chainsafe/libp2p-yamux <!-- omit in toc -->
 
 [![](https://img.shields.io/badge/made%20by-ChainSafe%20Systems-blue.svg?style=flat-square)](http://chainsafe.io)
-[![](https://img.shields.io/badge/project-libp2p-yellow.svg?style=flat-square)](http://libp2p.io/)
-[![](https://img.shields.io/codecov/c/github/chainsafe/js-libp2p-yamux.svg?style=flat-square)](https://codecov.io/gh/chainsafe/js-libp2p-yamux)
-[![Build Status](https://github.com/chainsafe/js-libp2p-yamux/actions/workflows/js-test-and-release.yml/badge.svg?branch=master)](https://github.com/chainsafe/js-libp2p-yamux/actions/workflows/js-test-and-release.yml)
-[![js-standard-style](https://img.shields.io/badge/code%20style-standard-brightgreen.svg?style=flat-square)](https://github.com/feross/standard)
-![](https://img.shields.io/badge/npm-%3E%3D7.0.0-orange.svg?style=flat-square)
-![](https://img.shields.io/badge/Node.js-%3E%3D16.0.0-orange.svg?style=flat-square)
+[![codecov](https://img.shields.io/codecov/c/github/ChainSafe/js-libp2p-yamux.svg?style=flat-square)](https://codecov.io/gh/ChainSafe/js-libp2p-yamux)
+[![CI](https://img.shields.io/github/workflow/status/ChainSafe/js-libp2p-yamux/test%20&%20maybe%20release/master?style=flat-square)](https://github.com/ChainSafe/js-libp2p-yamux/actions/workflows/js-test-and-release.yml)
 
-> JavaScript implementation of [yamux](https://github.com/hashicorp/yamux/blob/master/spec.md).
+> Yamux stream multiplexer for libp2p
 
-[![](https://github.com/libp2p/js-libp2p-interfaces/raw/master/packages/libp2p-interfaces/src/stream-muxer/img/badge.png)](https://github.com/libp2p/js-libp2p-interfaces/tree/master/packages/libp2p-interfaces/src/stream-muxer)
+## Table of contents <!-- omit in toc -->
+
+- [Install](#install)
+- [Usage](#usage)
+- [API](#api)
+- [Contribute](#contribute)
+- [License](#license)
+- [Contribute](#contribute-1)
 
 ## Install
 
-```sh
-npm install @chainsafe/libp2p-yamux
+```console
+$ npm i @chainsafe/libp2p-yamux
 ```
 
 ## Usage
@@ -86,16 +89,16 @@ This library implements the `StreamMuxerFactory`, `StreamMuxer` and `Stream` int
 
 The libp2p implementation in JavaScript is a work in progress. As such, there are a few things you can do right now to help out:
 
- - Go through the modules and **check out existing issues**. This is especially useful for modules in active development. Some knowledge of IPFS/libp2p may be required, as well as the infrastructure behind it - for instance, you may need to read up on p2p and more complex operations like muxing to be able to help technically.
- - **Perform code reviews**. More eyes will help a) speed the project along b) ensure quality and c) reduce possible future bugs.
+- Go through the modules and **check out existing issues**. This is especially useful for modules in active development. Some knowledge of IPFS/libp2p may be required, as well as the infrastructure behind it - for instance, you may need to read up on p2p and more complex operations like muxing to be able to help technically.
+- **Perform code reviews**. More eyes will help a) speed the project along b) ensure quality and c) reduce possible future bugs.
 
 ## License
 
 Licensed under either of
 
- * Apache 2.0, ([LICENSE-APACHE](LICENSE-APACHE) / http://www.apache.org/licenses/LICENSE-2.0)
- * MIT ([LICENSE-MIT](LICENSE-MIT) / http://opensource.org/licenses/MIT)
+- Apache 2.0, ([LICENSE-APACHE](LICENSE-APACHE) / <http://www.apache.org/licenses/LICENSE-2.0>)
+- MIT ([LICENSE-MIT](LICENSE-MIT) / <http://opensource.org/licenses/MIT>)
 
-### Contribution
+## Contribute
 
 Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in the work by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any additional terms or conditions.
