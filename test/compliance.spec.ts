@@ -6,7 +6,7 @@ import { TestYamux } from './util.js'
 describe('compliance', () => {
   tests({
     async setup () {
-      return new TestYamux()
+      return new TestYamux({})
     },
     async teardown () {}
   })

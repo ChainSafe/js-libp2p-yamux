@@ -24,15 +24,14 @@ $ npm i @chainsafe/libp2p-yamux
 ## Usage
 
 ```js
-import { YamuxMuxer } from '@chainsafe/libp2p-yamux'
-import { Components } from '@libp2p/interfaces/components'
+import { yamux } from '@chainsafe/libp2p-yamux'
 import { pipe } from 'it-pipe'
 import { duplexPair } from 'it-pair/duplex'
 import all from 'it-all'
 
 // Connect two yamux muxers to demo basic stream multiplexing functionality
 
-const clientMuxer = new YamuxMuxer(new Components(), {
+const clientMuxer = yamux({
   client: true,
   onIncomingStream: stream => {
     // echo data on incoming streams
@@ -41,9 +40,9 @@ const clientMuxer = new YamuxMuxer(new Components(), {
   onStreamEnd: stream => {
     // do nothing
   }
-})
+})()
 
-const serverMuxer = new YamuxMuxer(new Components(), {
+const serverMuxer = yamux({
   client: false,
   onIncomingStream: stream => {
     // echo data on incoming streams
@@ -52,7 +51,7 @@ const serverMuxer = new YamuxMuxer(new Components(), {
   onStreamEnd: stream => {
     // do nothing
   }
-})
+})()
 
 // `p` is our "connections", what we use to connect the two sides
 // In a real application, a connection is usually to a remote computer

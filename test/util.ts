@@ -1,4 +1,3 @@
-import { Components } from '@libp2p/components'
 import { logger } from '@libp2p/logger'
 import type { Transform } from 'it-stream-types'
 import { duplexPair } from 'it-pair/duplex'
@@ -34,7 +33,7 @@ export class TestYamux extends Yamux {
 }
 
 export function testYamuxMuxer (name: string, client: boolean, conf: YamuxMuxerInit = {}) {
-  return new YamuxMuxer(new Components(), {
+  return new YamuxMuxer({}, {
     ...testConf,
     ...conf,
     direction: client ? 'outbound' : 'inbound',
