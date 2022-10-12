@@ -1,5 +1,3 @@
-import { Components } from '@libp2p/components'
-import type { Initializable } from '@libp2p/components'
 import type { Stream } from '@libp2p/interface-connection'
 import type { StreamMuxer, StreamMuxerFactory, StreamMuxerInit } from '@libp2p/interface-stream-muxer'
 import { abortableSource } from 'abortable-iterator'
@@ -17,23 +15,25 @@ import { Config, defaultConfig, verifyConfig } from './config.js'
 import { Decoder } from './decode.js'
 import type { Logger } from '@libp2p/logger'
 import type { Uint8ArrayList } from 'uint8arraylist'
+import type { Metrics } from '@libp2p/interface-metrics'
 
 const YAMUX_PROTOCOL_ID = '/yamux/1.0.0'
 
 export interface YamuxMuxerInit extends StreamMuxerInit, Partial<Config> {
 }
 
-export class Yamux implements StreamMuxerFactory, Initializable {
+export interface YamuxComponents {
+  metrics?: Metrics
+}
+
+export class Yamux implements StreamMuxerFactory {
   protocol = YAMUX_PROTOCOL_ID
-  private components = new Components()
+  private readonly components: YamuxComponents
   private readonly _init: YamuxMuxerInit
 
-  constructor (init: YamuxMuxerInit = {}) {
-    this._init = init
-  }
-
-  init (components: Components): void {
+  constructor (components: YamuxComponents, init: YamuxMuxerInit = {}) {
     this.components = components
+    this._init = init
   }
 
   createStreamMuxer (init?: YamuxMuxerInit): YamuxMuxer {
@@ -82,7 +82,7 @@ export class YamuxMuxer implements StreamMuxer {
   private readonly onIncomingStream?: (stream: Stream) => void
   private readonly onStreamEnd?: (stream: Stream) => void
 
-  constructor (components: Components, init: YamuxMuxerInit) {
+  constructor (components: YamuxComponents, init: YamuxMuxerInit) {
     this._init = init
     this.client = init.direction === 'outbound'
     this.config = { ...defaultConfig, ...init }
@@ -94,7 +94,7 @@ export class YamuxMuxer implements StreamMuxer {
     this.onIncomingStream = init.onIncomingStream
     this.onStreamEnd = init.onStreamEnd
 
-    this._streams = trackedMap({ metrics: components.getMetrics(), component: 'yamux', metric: 'streams' })
+    this._streams = trackedMap({ metrics: components.metrics, component: 'yamux', metric: 'streams' })
 
     this.source = pushable({
       onEnd: (err?: Error): void => {
