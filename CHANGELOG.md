@@ -1,3 +1,14 @@
+## [3.0.0](https://github.com/ChainSafe/js-libp2p-yamux/compare/v2.0.0...v3.0.0) (2022-10-12)
+
+
+### ⚠ BREAKING CHANGES
+
+* modules no longer implement `Initializable` instead switching to constructor injection
+
+### Bug Fixes
+
+* remove @libp2p/components ([#13](https://github.com/ChainSafe/js-libp2p-yamux/issues/13)) ([3fafe00](https://github.com/ChainSafe/js-libp2p-yamux/commit/3fafe0053c6e752e86d0c68549a62b231b16d4ac))
+
 ## [2.0.0](https://github.com/ChainSafe/js-libp2p-yamux/compare/v1.0.1...v2.0.0) (2022-10-07)
 
 
