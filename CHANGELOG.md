@@ -1,3 +1,11 @@
+## [3.0.1](https://github.com/ChainSafe/js-libp2p-yamux/compare/v3.0.0...v3.0.1) (2022-10-17)
+
+
+### Dependencies
+
+* **dev:** bump @libp2p/interface-stream-muxer-compliance-tests from 5.0.0 to 6.0.0 ([#15](https://github.com/ChainSafe/js-libp2p-yamux/issues/15)) ([b6a02d1](https://github.com/ChainSafe/js-libp2p-yamux/commit/b6a02d1613df746f626ea75bfa3b9d601d34e071))
+* **dev:** bump it-drain from 1.0.5 to 2.0.0 ([#16](https://github.com/ChainSafe/js-libp2p-yamux/issues/16)) ([399a49c](https://github.com/ChainSafe/js-libp2p-yamux/commit/399a49ce7b539ab5643491938cb13cb1857a2bc1))
+
 ## [3.0.0](https://github.com/ChainSafe/js-libp2p-yamux/compare/v2.0.0...v3.0.0) (2022-10-12)
 
 
