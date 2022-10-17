@@ -1,10 +1,10 @@
 import type { Transform } from 'it-stream-types'
 import { duplexPair } from 'it-pair/duplex'
 import { pipe } from 'it-pipe'
-import { Mplex } from '@libp2p/mplex'
+import { mplex } from '@libp2p/mplex'
 import type { StreamMuxer, StreamMuxerInit } from '@libp2p/interface-stream-muxer'
 
-const factory = new Mplex()
+const factory = mplex()()
 
 export function testYamuxMuxer (name: string, client: boolean, conf: StreamMuxerInit = {}) {
   return factory.createStreamMuxer({
