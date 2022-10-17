@@ -1,3 +1,10 @@
+## [3.0.2](https://github.com/ChainSafe/js-libp2p-yamux/compare/v3.0.1...v3.0.2) (2022-10-17)
+
+
+### Dependencies
+
+* **dev:** bump @libp2p/mplex from 6.0.2 to 7.0.0 ([#14](https://github.com/ChainSafe/js-libp2p-yamux/issues/14)) ([4085a05](https://github.com/ChainSafe/js-libp2p-yamux/commit/4085a05d169b6aea212f995044512ee011e15e07))
+
 ## [3.0.1](https://github.com/ChainSafe/js-libp2p-yamux/compare/v3.0.0...v3.0.1) (2022-10-17)
 
 
