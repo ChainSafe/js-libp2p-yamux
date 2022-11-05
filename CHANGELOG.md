@@ -1,3 +1,10 @@
+## [3.0.3](https://github.com/ChainSafe/js-libp2p-yamux/compare/v3.0.2...v3.0.3) (2022-11-05)
+
+
+### Bug Fixes
+
+* remove metrics from component ([#17](https://github.com/ChainSafe/js-libp2p-yamux/issues/17)) ([c396f8c](https://github.com/ChainSafe/js-libp2p-yamux/commit/c396f8c1b99f3c68104c894a1ac88a805bff68a3))
+
 ## [3.0.2](https://github.com/ChainSafe/js-libp2p-yamux/compare/v3.0.1...v3.0.2) (2022-10-17)
 
 
