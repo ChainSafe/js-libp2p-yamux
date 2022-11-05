@@ -33,7 +33,7 @@ export class TestYamux extends Yamux {
 }
 
 export function testYamuxMuxer (name: string, client: boolean, conf: YamuxMuxerInit = {}) {
-  return new YamuxMuxer({}, {
+  return new YamuxMuxer({
     ...testConf,
     ...conf,
     direction: client ? 'outbound' : 'inbound',
