@@ -1,3 +1,10 @@
+## [3.0.4](https://github.com/ChainSafe/js-libp2p-yamux/compare/v3.0.3...v3.0.4) (2023-01-06)
+
+
+### Bug Fixes
+
+* remove unused deps ([#19](https://github.com/ChainSafe/js-libp2p-yamux/issues/19)) ([beb4707](https://github.com/ChainSafe/js-libp2p-yamux/commit/beb47073fc1f919def45db262ed58f7d1f3a7a96))
+
 ## [3.0.3](https://github.com/ChainSafe/js-libp2p-yamux/compare/v3.0.2...v3.0.3) (2022-11-05)
 
 
