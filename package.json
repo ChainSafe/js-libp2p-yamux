@@ -42,7 +42,7 @@
   },
   "files": [
     "src",
-    "dist/src",
+    "dist",
     "!dist/test",
     "!**/*.tsbuildinfo"
   ],
@@ -167,7 +167,8 @@
     "test:firefox-webworker": "aegir test -t webworker -- --browser firefox",
     "test:node": "aegir test -t node --cov",
     "test:electron-main": "aegir test -t electron-main",
-    "release": "aegir release"
+    "release": "aegir release",
+    "docs": "aegir docs"
   },
   "dependencies": {
     "@libp2p/interface-connection": "^3.0.1",
@@ -176,18 +177,15 @@
     "abortable-iterator": "^4.0.2",
     "any-signal": "^3.0.1",
     "err-code": "^3.0.1",
-    "iso-random-stream": "^2.0.2",
     "it-pipe": "^2.0.4",
     "it-pushable": "^3.1.0",
-    "multiformats": "^10.0.0",
-    "uint8arraylist": "^2.3.2",
-    "uint8arrays": "^4.0.2"
+    "uint8arraylist": "^2.3.2"
   },
   "devDependencies": {
     "@dapplion/benchmark": "^0.2.2",
     "@libp2p/interface-stream-muxer-compliance-tests": "^6.0.0",
     "@libp2p/mplex": "^7.0.0",
-    "aegir": "^37.3.0",
+    "aegir": "^37.9.1",
     "it-drain": "^2.0.0",
     "it-pair": "2.0.3",
     "it-stream-types": "^1.0.4"

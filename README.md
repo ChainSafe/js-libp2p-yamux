@@ -1,24 +1,33 @@
 # @chainsafe/libp2p-yamux <!-- omit in toc -->
 
-[![](https://img.shields.io/badge/made%20by-ChainSafe%20Systems-blue.svg?style=flat-square)](http://chainsafe.io)
 [![codecov](https://img.shields.io/codecov/c/github/ChainSafe/js-libp2p-yamux.svg?style=flat-square)](https://codecov.io/gh/ChainSafe/js-libp2p-yamux)
-[![CI](https://img.shields.io/github/workflow/status/ChainSafe/js-libp2p-yamux/test%20&%20maybe%20release/master?style=flat-square)](https://github.com/ChainSafe/js-libp2p-yamux/actions/workflows/js-test-and-release.yml)
+[![CI](https://img.shields.io/github/actions/workflow/status/ChainSafe/js-libp2p-yamux/js-test-and-release.yml?branch=master\&style=flat-square)](https://github.com/ChainSafe/js-libp2p-yamux/actions/workflows/js-test-and-release.yml?query=branch%3Amaster)
 
 > Yamux stream multiplexer for libp2p
 
 ## Table of contents <!-- omit in toc -->
 
 - [Install](#install)
+  - [Browser `<script>` tag](#browser-script-tag)
 - [Usage](#usage)
 - [API](#api)
 - [Contribute](#contribute)
+- [API Docs](#api-docs)
 - [License](#license)
-- [Contribute](#contribute-1)
+- [Contribution](#contribution)
 
 ## Install
 
 ```console
 $ npm i @chainsafe/libp2p-yamux
+```
+
+### Browser `<script>` tag
+
+Loading this module through a script tag will make it's exports available as `ChainsafeLibp2pYamux` in the global namespace.
+
+```html
+<script src="https://unpkg.com/@chainsafe/libp2p-yamux/dist/index.min.js"></script>
 ```
 
 ## Usage
@@ -91,6 +100,10 @@ The libp2p implementation in JavaScript is a work in progress. As such, there ar
 - Go through the modules and **check out existing issues**. This is especially useful for modules in active development. Some knowledge of IPFS/libp2p may be required, as well as the infrastructure behind it - for instance, you may need to read up on p2p and more complex operations like muxing to be able to help technically.
 - **Perform code reviews**. More eyes will help a) speed the project along b) ensure quality and c) reduce possible future bugs.
 
+## API Docs
+
+- <https://ChainSafe.github.io/js-libp2p-yamux>
+
 ## License
 
 Licensed under either of
@@ -98,6 +111,6 @@ Licensed under either of
 - Apache 2.0, ([LICENSE-APACHE](LICENSE-APACHE) / <http://www.apache.org/licenses/LICENSE-2.0>)
 - MIT ([LICENSE-MIT](LICENSE-MIT) / <http://opensource.org/licenses/MIT>)
 
-## Contribute
+## Contribution
 
 Unless you explicitly state otherwise, any contribution intentionally submitted for inclusion in the work by you, as defined in the Apache-2.0 license, shall be dual licensed as above, without any additional terms or conditions.
