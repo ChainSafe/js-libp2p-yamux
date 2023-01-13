@@ -49,11 +49,11 @@ export class YamuxStream implements Stream {
   writeState: HalfStreamState
 
   /** Input to the read side of the stream */
-  sourceInput: Pushable<Uint8ArrayList>;
+  sourceInput: Pushable<Uint8ArrayList>
   /** Read side of the stream */
-  source: Source<Uint8ArrayList>;
+  source: Source<Uint8ArrayList>
   /** Write side of the stream */
-  sink: Sink<Uint8Array | Uint8ArrayList>;
+  sink: Sink<Uint8Array | Uint8ArrayList>
 
   private readonly config: Config
   private readonly log?: Logger
@@ -149,14 +149,14 @@ export class YamuxStream implements Stream {
     }
   }
 
-  private async * createSource () {
+  private async * createSource (): AsyncGenerator<Uint8ArrayList> {
     try {
       for await (const val of this.sourceInput) {
         this.sendWindowUpdate()
         yield val
       }
     } catch (err) {
-      const errCode = (err as {code: string}).code
+      const errCode = (err as { code: string }).code
       if (errCode !== ERR_STREAM_ABORT && errCode !== ERR_STREAM_RESET) {
         this.log?.error('stream source error id=%s', this._id, err)
         throw err
@@ -282,11 +282,11 @@ export class YamuxStream implements Stream {
       return
     }
     let reject: (err: Error) => void
-    const abort = () => {
+    const abort = (): void => {
       reject(errcode(new Error('stream aborted'), ERR_STREAM_ABORT))
     }
     this.abortController.signal.addEventListener('abort', abort)
-    return await new Promise((_resolve, _reject) => {
+    await new Promise((_resolve, _reject) => {
       this.sendWindowCapacityUpdate = () => {
         this.abortController.signal.removeEventListener('abort', abort)
         _resolve(undefined)
