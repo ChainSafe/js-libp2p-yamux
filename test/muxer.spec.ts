@@ -94,7 +94,7 @@ describe('muxer', () => {
       client.newStream()
       expect.fail('should not be able to open a stream after close')
     } catch (e) {
-      expect((e as {code: string}).code).to.equal(ERR_MUXER_LOCAL_CLOSED)
+      expect((e as { code: string }).code).to.equal(ERR_MUXER_LOCAL_CLOSED)
     }
   })
 

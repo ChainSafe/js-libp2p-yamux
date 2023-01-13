@@ -211,7 +211,7 @@ describe('stream', () => {
     try {
       await Promise.all([sendPipe, recvPipe])
     } catch (e) {
-      expect((e as {code: string}).code).to.equal(ERR_STREAM_RESET)
+      expect((e as { code: string }).code).to.equal(ERR_STREAM_RESET)
     }
     // eslint-disable-next-line @typescript-eslint/dot-notation
     expect(client['remoteGoAway']).to.equal(GoAwayCode.ProtocolError)

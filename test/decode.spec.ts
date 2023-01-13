@@ -9,7 +9,7 @@ import { timeout } from './util.js'
 import { ERR_DECODE_IN_PROGRESS } from '../src/constants.js'
 import type { Uint8ArrayList } from 'uint8arraylist'
 
-const frames: Array<{header: FrameHeader, data?: Uint8Array}> = [
+const frames: Array<{ header: FrameHeader, data?: Uint8Array }> = [
   { header: { type: FrameType.Ping, flag: Flag.SYN, streamID: 0, length: 1 } },
   { header: { type: FrameType.WindowUpdate, flag: Flag.SYN, streamID: 1, length: 1 } },
   { header: { type: FrameType.GoAway, flag: 0, streamID: 0, length: GoAwayCode.NormalTermination } },
@@ -18,13 +18,13 @@ const frames: Array<{header: FrameHeader, data?: Uint8Array}> = [
   { header: { type: FrameType.GoAway, flag: 0, streamID: 0, length: GoAwayCode.ProtocolError } }
 ]
 
-const data = (length: number) => Uint8Array.from(Array.from({ length }), (_, i) => i)
+const data = (length: number): Uint8Array => Uint8Array.from(Array.from({ length }), (_, i) => i)
 
-const expectEqualBytes = (actual: Uint8Array | Uint8ArrayList, expected: Uint8Array | Uint8ArrayList, reason?: string) => {
+const expectEqualBytes = (actual: Uint8Array | Uint8ArrayList, expected: Uint8Array | Uint8ArrayList, reason?: string): void => {
   expect(actual instanceof Uint8Array ? actual : actual.subarray(), reason).to.deep.equal(expected instanceof Uint8Array ? expected : expected.subarray())
 }
 
-const expectEqualDataFrame = (actual: {header: FrameHeader, data?: Uint8Array | Uint8ArrayList}, expected: {header: FrameHeader, data?: Uint8Array | Uint8ArrayList}, reason = '') => {
+const expectEqualDataFrame = (actual: { header: FrameHeader, data?: Uint8Array | Uint8ArrayList }, expected: { header: FrameHeader, data?: Uint8Array | Uint8ArrayList }, reason = ''): void => {
   expect(actual.header, reason + ' header').to.deep.equal(expected.header)
   if (actual.data == null && expected.data != null) {
     expect.fail('actual has no data but expected does')
@@ -37,7 +37,7 @@ const expectEqualDataFrame = (actual: {header: FrameHeader, data?: Uint8Array | 
   }
 }
 
-const expectEqualDataFrames = (actual: Array<{header: FrameHeader, data?: Uint8Array | Uint8ArrayList}>, expected: Array<{header: FrameHeader, data?: Uint8Array | Uint8ArrayList}>) => {
+const expectEqualDataFrames = (actual: Array<{ header: FrameHeader, data?: Uint8Array | Uint8ArrayList }>, expected: Array<{ header: FrameHeader, data?: Uint8Array | Uint8ArrayList }>): void => {
   if (actual.length !== expected.length) {
     expect.fail('actual')
   }
@@ -46,12 +46,12 @@ const expectEqualDataFrames = (actual: Array<{header: FrameHeader, data?: Uint8A
   }
 }
 
-const dataFrame = (length: number) => ({
+const dataFrame = (length: number): { header: FrameHeader, data: Uint8Array } => ({
   header: { type: FrameType.Data, flag: 0, streamID: 1, length },
   data: data(length)
 })
 
-export const randomRanges = (length: number) => {
+export const randomRanges = (length: number): number[][] => {
   const indices = []
   let i = 0
   let j = 0
@@ -345,7 +345,7 @@ describe('Decoder', () => {
         }
         expect.fail('decoding another frame before the first is finished should error')
       } catch (e) {
-        expect((e as {code: string}).code).to.equal(ERR_DECODE_IN_PROGRESS)
+        expect((e as { code: string }).code).to.equal(ERR_DECODE_IN_PROGRESS)
       }
     })
   })

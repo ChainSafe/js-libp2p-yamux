@@ -5,7 +5,7 @@ import { encodeHeader } from '../src/encode.js'
 import { Flag, FrameHeader, FrameType, GoAwayCode, stringifyHeader } from '../src/frame.js'
 import { decodeHeaderNaive, encodeHeaderNaive } from './codec.util.js'
 
-const frames: Array<{header: FrameHeader, data?: Uint8Array}> = [
+const frames: Array<{ header: FrameHeader, data?: Uint8Array }> = [
   { header: { type: FrameType.Ping, flag: Flag.SYN, streamID: 0, length: 1 } },
   { header: { type: FrameType.WindowUpdate, flag: Flag.SYN, streamID: 1, length: 1 } },
   { header: { type: FrameType.GoAway, flag: 0, streamID: 0, length: GoAwayCode.NormalTermination } },

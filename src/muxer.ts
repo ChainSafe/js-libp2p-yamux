@@ -119,7 +119,7 @@ export class YamuxMuxer implements StreamMuxer {
         reason = GoAwayCode.NormalTermination
       } catch (err: unknown) {
         // either a protocol or internal error
-        const errCode = (err as {code: string}).code
+        const errCode = (err as { code: string }).code
         if (PROTOCOL_ERRORS.has(errCode)) {
           this.log?.error('protocol error in sink', err)
           reason = GoAwayCode.ProtocolError
@@ -204,16 +204,16 @@ export class YamuxMuxer implements StreamMuxer {
     // An active ping does not yet exist, handle the process here
     if (this.activePing === undefined) {
       // create active ping
-      let _resolve = () => {}
+      let _resolve = (): void => {}
       this.activePing = {
         id: this.nextPingID++,
         // this promise awaits resolution or the close controller aborting
         promise: new Promise<void>((resolve, reject) => {
-          const closed = () => {
+          const closed = (): void => {
             reject(errcode(new Error('muxer closed locally'), ERR_MUXER_LOCAL_CLOSED))
           }
           this.closeController.signal.addEventListener('abort', closed, { once: true })
-          _resolve = () => {
+          _resolve = (): void => {
             this.closeController.signal.removeEventListener('abort', closed)
             resolve()
           }
@@ -338,7 +338,7 @@ export class YamuxMuxer implements StreamMuxer {
   }
 
   private async keepAliveLoop (): Promise<void> {
-    const abortPromise = new Promise((_resolve, reject) => this.closeController.signal.addEventListener('abort', reject, { once: true }))
+    const abortPromise = new Promise((_resolve, reject) => { this.closeController.signal.addEventListener('abort', reject, { once: true }) })
     this.log?.('muxer keepalive enabled interval=%s', this.config.keepAliveInterval)
     while (true) {
       let timeoutId
@@ -369,9 +369,9 @@ export class YamuxMuxer implements StreamMuxer {
     if (streamID === 0) {
       switch (type) {
         case FrameType.Ping:
-          return this.handlePing(header)
+        { this.handlePing(header); return }
         case FrameType.GoAway:
-          return this.handleGoAway(length)
+        { this.handleGoAway(length); return }
         default:
           // Invalid state
           throw errcode(new Error('Invalid frame type'), ERR_INVALID_FRAME, { header })
@@ -380,7 +380,7 @@ export class YamuxMuxer implements StreamMuxer {
       switch (header.type) {
         case FrameType.Data:
         case FrameType.WindowUpdate:
-          return await this.handleStreamMessage(header, readData)
+        { await this.handleStreamMessage(header, readData); return }
         default:
           // Invalid state
           throw errcode(new Error('Invalid frame type'), ERR_INVALID_FRAME, { header })
@@ -452,14 +452,14 @@ export class YamuxMuxer implements StreamMuxer {
 
     switch (type) {
       case FrameType.WindowUpdate: {
-        return stream.handleWindowUpdate(header)
+        stream.handleWindowUpdate(header); return
       }
       case FrameType.Data: {
         if (readData === undefined) {
           throw new Error('unreachable')
         }
 
-        return await stream.handleData(header, readData)
+        await stream.handleData(header, readData); return
       }
       default:
         throw new Error('unreachable')
@@ -478,23 +478,23 @@ export class YamuxMuxer implements StreamMuxer {
 
     if (this.localGoAway !== undefined) {
       // reject (reset) immediately if we are doing a go away
-      return this.sendFrame({
+      this.sendFrame({
         type: FrameType.WindowUpdate,
         flag: Flag.RST,
         streamID: id,
         length: 0
-      })
+      }); return
     }
 
     // check against our configured maximum number of inbound streams
     if (this.numInboundStreams >= this.config.maxInboundStreams) {
       this.log?.('maxIncomingStreams exceeded, forcing stream reset')
-      return this.sendFrame({
+      this.sendFrame({
         type: FrameType.WindowUpdate,
         flag: Flag.RST,
         streamID: id,
         length: 0
-      })
+      }); return
     }
 
     // allocate a new stream
@@ -528,7 +528,7 @@ export class YamuxMuxer implements StreamMuxer {
     }
     this.sendFrame({
       type: FrameType.Ping,
-      flag: flag,
+      flag,
       streamID: 0,
       length: pingId
     })
