@@ -4,7 +4,7 @@ import { abortableSource } from 'abortable-iterator'
 import { pipe } from 'it-pipe'
 import type { Sink, Source } from 'it-stream-types'
 import { pushable, Pushable } from 'it-pushable'
-import errcode from 'err-code'
+import { CodeError } from '@libp2p/interfaces/errors'
 import anySignal from 'any-signal'
 import { Flag, FrameHeader, FrameType, GoAwayCode, stringifyHeader } from './frame.js'
 import { StreamState, YamuxStream } from './stream.js'
@@ -158,10 +158,10 @@ export class YamuxMuxer implements StreamMuxer {
 
   newStream (name?: string | undefined): YamuxStream {
     if (this.remoteGoAway !== undefined) {
-      throw errcode(new Error('muxer closed remotely'), ERR_MUXER_REMOTE_CLOSED)
+      throw new CodeError('muxer closed remotely', ERR_MUXER_REMOTE_CLOSED)
     }
     if (this.localGoAway !== undefined) {
-      throw errcode(new Error('muxer closed locally'), ERR_MUXER_LOCAL_CLOSED)
+      throw new CodeError('muxer closed locally', ERR_MUXER_LOCAL_CLOSED)
     }
 
     const id = this.nextStreamID
@@ -169,7 +169,7 @@ export class YamuxMuxer implements StreamMuxer {
 
     // check against our configured maximum number of outbound streams
     if (this.numOutboundStreams >= this.config.maxOutboundStreams) {
-      throw errcode(new Error('max outbound streams exceeded'), ERR_MAX_OUTBOUND_STREAMS_EXCEEDED)
+      throw new CodeError('max outbound streams exceeded', ERR_MAX_OUTBOUND_STREAMS_EXCEEDED)
     }
 
     this.log?.('new outgoing stream id=%s', id)
@@ -195,10 +195,10 @@ export class YamuxMuxer implements StreamMuxer {
    */
   async ping (): Promise<number> {
     if (this.remoteGoAway !== undefined) {
-      throw errcode(new Error('muxer closed remotely'), ERR_MUXER_REMOTE_CLOSED)
+      throw new CodeError('muxer closed remotely', ERR_MUXER_REMOTE_CLOSED)
     }
     if (this.localGoAway !== undefined) {
-      throw errcode(new Error('muxer closed locally'), ERR_MUXER_LOCAL_CLOSED)
+      throw new CodeError('muxer closed locally', ERR_MUXER_LOCAL_CLOSED)
     }
 
     // An active ping does not yet exist, handle the process here
@@ -210,7 +210,7 @@ export class YamuxMuxer implements StreamMuxer {
         // this promise awaits resolution or the close controller aborting
         promise: new Promise<void>((resolve, reject) => {
           const closed = (): void => {
-            reject(errcode(new Error('muxer closed locally'), ERR_MUXER_LOCAL_CLOSED))
+            reject(new CodeError('muxer closed locally', ERR_MUXER_LOCAL_CLOSED))
           }
           this.closeController.signal.addEventListener('abort', closed, { once: true })
           _resolve = (): void => {
@@ -303,7 +303,7 @@ export class YamuxMuxer implements StreamMuxer {
   /** Create a new stream */
   private _newStream (id: number, name: string | undefined, state: StreamState, direction: 'inbound' | 'outbound'): YamuxStream {
     if (this._streams.get(id) != null) {
-      throw errcode(new Error('Stream already exists'), ERR_STREAM_ALREADY_EXISTS, { id })
+      throw new CodeError('Stream already exists', ERR_STREAM_ALREADY_EXISTS, { id })
     }
 
     const stream = new YamuxStream({
@@ -374,7 +374,7 @@ export class YamuxMuxer implements StreamMuxer {
         { this.handleGoAway(length); return }
         default:
           // Invalid state
-          throw errcode(new Error('Invalid frame type'), ERR_INVALID_FRAME, { header })
+          throw new CodeError('Invalid frame type', ERR_INVALID_FRAME, { header })
       }
     } else {
       switch (header.type) {
@@ -383,7 +383,7 @@ export class YamuxMuxer implements StreamMuxer {
         { await this.handleStreamMessage(header, readData); return }
         default:
           // Invalid state
-          throw errcode(new Error('Invalid frame type'), ERR_INVALID_FRAME, { header })
+          throw new CodeError('Invalid frame type', ERR_INVALID_FRAME, { header })
       }
     }
   }
@@ -398,18 +398,18 @@ export class YamuxMuxer implements StreamMuxer {
       this.handlePingResponse(header.length)
     } else {
       // Invalid state
-      throw errcode(new Error('Invalid frame flag'), ERR_INVALID_FRAME, { header })
+      throw new CodeError('Invalid frame flag', ERR_INVALID_FRAME, { header })
     }
   }
 
   private handlePingResponse (pingId: number): void {
     if (this.activePing === undefined) {
       // this ping was not requested
-      throw errcode(new Error('ping not requested'), ERR_UNREQUESTED_PING)
+      throw new CodeError('ping not requested', ERR_UNREQUESTED_PING)
     }
     if (this.activePing.id !== pingId) {
       // this ping doesn't match our active ping request
-      throw errcode(new Error('ping doesn\'t match our id'), ERR_NOT_MATCHING_PING)
+      throw new CodeError('ping doesn\'t match our id', ERR_NOT_MATCHING_PING)
     }
 
     // valid ping response
@@ -468,7 +468,7 @@ export class YamuxMuxer implements StreamMuxer {
 
   private incomingStream (id: number): void {
     if (this.client !== (id % 2 === 0)) {
-      throw errcode(new Error('both endpoints are clients'), ERR_BOTH_CLIENTS)
+      throw new CodeError('both endpoints are clients', ERR_BOTH_CLIENTS)
     }
     if (this._streams.has(id)) {
       return
@@ -511,7 +511,7 @@ export class YamuxMuxer implements StreamMuxer {
     this.log?.trace('sending frame %s', stringifyHeader(header))
     if (header.type === FrameType.Data) {
       if (data === undefined) {
-        throw errcode(new Error('invalid frame'), ERR_INVALID_FRAME)
+        throw new CodeError('invalid frame', ERR_INVALID_FRAME)
       }
       this.source.push(encodeHeader(header))
       this.source.push(data)

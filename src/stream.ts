@@ -1,7 +1,7 @@
 import type { Stream, StreamStat } from '@libp2p/interface-connection'
 import { pushable, Pushable } from 'it-pushable'
 import type { Sink, Source } from 'it-stream-types'
-import errcode from 'err-code'
+import { CodeError } from '@libp2p/interfaces/errors'
 import { abortableSource } from 'abortable-iterator'
 import type { Uint8ArrayList } from 'uint8arraylist'
 import { Flag, FrameHeader, FrameType, HEADER_LENGTH } from './frame.js'
@@ -235,7 +235,7 @@ export class YamuxStream implements Stream {
 
     this.log?.('stream abort id=%s error=%s', this._id, err)
 
-    this.onReset(errcode(err ?? new Error('stream aborted'), ERR_STREAM_ABORT))
+    this.onReset(new CodeError(String(err) ?? 'stream aborted', ERR_STREAM_ABORT))
   }
 
   reset (): void {
@@ -245,7 +245,7 @@ export class YamuxStream implements Stream {
 
     this.log?.('stream reset id=%s', this._id)
 
-    this.onReset(errcode(new Error('stream reset'), ERR_STREAM_RESET))
+    this.onReset(new CodeError('stream reset', ERR_STREAM_RESET))
   }
 
   /**
@@ -276,14 +276,14 @@ export class YamuxStream implements Stream {
    */
   async waitForSendWindowCapacity (): Promise<void> {
     if (this.abortController.signal.aborted) {
-      throw errcode(new Error('stream aborted'), ERR_STREAM_ABORT)
+      throw new CodeError('stream aborted', ERR_STREAM_ABORT)
     }
     if (this.sendWindowCapacity > 0) {
       return
     }
     let reject: (err: Error) => void
     const abort = (): void => {
-      reject(errcode(new Error('stream aborted'), ERR_STREAM_ABORT))
+      reject(new CodeError('stream aborted', ERR_STREAM_ABORT))
     }
     this.abortController.signal.addEventListener('abort', abort)
     await new Promise((_resolve, _reject) => {
@@ -320,7 +320,7 @@ export class YamuxStream implements Stream {
 
     // check that our recv window is not exceeded
     if (this.recvWindowCapacity < header.length) {
-      throw errcode(new Error('receive window exceeded'), ERR_RECV_WINDOW_EXCEEDED, { available: this.recvWindowCapacity, recv: header.length })
+      throw new CodeError('receive window exceeded', ERR_RECV_WINDOW_EXCEEDED, { available: this.recvWindowCapacity, recv: header.length })
     }
 
     const data = await readData()
