@@ -1,4 +1,4 @@
-import errcode from 'err-code'
+import { CodeError } from '@libp2p/interfaces/errors'
 import { ERR_DECODE_INVALID_VERSION } from '../src/constants.js'
 import { FrameHeader, HEADER_LENGTH, YAMUX_VERSION } from '../src/frame.js'
 
@@ -8,7 +8,7 @@ export function decodeHeaderNaive (data: Uint8Array): FrameHeader {
   const view = new DataView(data.buffer, data.byteOffset, data.byteLength)
 
   if (view.getUint8(0) !== YAMUX_VERSION) {
-    throw errcode(new Error('Invalid frame version'), ERR_DECODE_INVALID_VERSION)
+    throw new CodeError('Invalid frame version', ERR_DECODE_INVALID_VERSION)
   }
   return {
     type: view.getUint8(1),

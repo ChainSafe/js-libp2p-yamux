@@ -1,5 +1,5 @@
 import { logger, Logger } from '@libp2p/logger'
-import errcode from 'err-code'
+import { CodeError } from '@libp2p/interfaces/errors'
 import { ERR_INVALID_CONFIG, INITIAL_STREAM_WINDOW, MAX_STREAM_WINDOW } from './constants.js'
 
 // TOOD use config items or delete them
@@ -67,24 +67,24 @@ export const defaultConfig: Config = {
 
 export function verifyConfig (config: Config): void {
   if (config.keepAliveInterval <= 0) {
-    throw errcode(new Error('keep-alive interval must be positive'), ERR_INVALID_CONFIG)
+    throw new CodeError('keep-alive interval must be positive', ERR_INVALID_CONFIG)
   }
   if (config.maxInboundStreams < 0) {
-    throw errcode(new Error('max inbound streams must be larger or equal 0'), ERR_INVALID_CONFIG)
+    throw new CodeError('max inbound streams must be larger or equal 0', ERR_INVALID_CONFIG)
   }
   if (config.maxOutboundStreams < 0) {
-    throw errcode(new Error('max outbound streams must be larger or equal 0'), ERR_INVALID_CONFIG)
+    throw new CodeError('max outbound streams must be larger or equal 0', ERR_INVALID_CONFIG)
   }
   if (config.initialStreamWindowSize < INITIAL_STREAM_WINDOW) {
-    throw errcode(new Error('InitialStreamWindowSize must be larger or equal 256 kB'), ERR_INVALID_CONFIG)
+    throw new CodeError('InitialStreamWindowSize must be larger or equal 256 kB', ERR_INVALID_CONFIG)
   }
   if (config.maxStreamWindowSize < config.initialStreamWindowSize) {
-    throw errcode(new Error('MaxStreamWindowSize must be larger than the InitialStreamWindowSize'), ERR_INVALID_CONFIG)
+    throw new CodeError('MaxStreamWindowSize must be larger than the InitialStreamWindowSize', ERR_INVALID_CONFIG)
   }
   if (config.maxStreamWindowSize > 2 ** 32 - 1) {
-    throw errcode(new Error('MaxStreamWindowSize must be less than equal MAX_UINT32'), ERR_INVALID_CONFIG)
+    throw new CodeError('MaxStreamWindowSize must be less than equal MAX_UINT32', ERR_INVALID_CONFIG)
   }
   if (config.maxMessageSize < 1024) {
-    throw errcode(new Error('MaxMessageSize must be greater than a kilobyte'), ERR_INVALID_CONFIG)
+    throw new CodeError('MaxMessageSize must be greater than a kilobyte', ERR_INVALID_CONFIG)
   }
 }
