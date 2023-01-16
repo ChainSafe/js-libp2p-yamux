@@ -1,3 +1,15 @@
+## [3.0.5](https://github.com/ChainSafe/js-libp2p-yamux/compare/v3.0.4...v3.0.5) (2023-01-16)
+
+
+### Dependencies
+
+* **dev:** bump aegir from 37.12.1 to 38.1.0 ([#20](https://github.com/ChainSafe/js-libp2p-yamux/issues/20)) ([0cf9a86](https://github.com/ChainSafe/js-libp2p-yamux/commit/0cf9a865bff5f82b3fe03bf2a718b22f1cd1ef5d))
+
+
+### Trivial Changes
+
+* replace err-code with CodeError ([#21](https://github.com/ChainSafe/js-libp2p-yamux/issues/21)) ([8c2ba01](https://github.com/ChainSafe/js-libp2p-yamux/commit/8c2ba01f5dbeb736e94cf6df3ab140494a2b184d))
+
 ## [3.0.4](https://github.com/ChainSafe/js-libp2p-yamux/compare/v3.0.3...v3.0.4) (2023-01-06)
 
 
