@@ -1,3 +1,10 @@
+## [3.0.6](https://github.com/ChainSafe/js-libp2p-yamux/compare/v3.0.5...v3.0.6) (2023-02-24)
+
+
+### Dependencies
+
+* **dev:** bump it-pair from 2.0.3 to 2.0.4 ([#22](https://github.com/ChainSafe/js-libp2p-yamux/issues/22)) ([f908735](https://github.com/ChainSafe/js-libp2p-yamux/commit/f908735bbbd921b0806ffe4a3cec6176662e1f3c))
+
 ## [3.0.5](https://github.com/ChainSafe/js-libp2p-yamux/compare/v3.0.4...v3.0.5) (2023-01-16)
 
 
