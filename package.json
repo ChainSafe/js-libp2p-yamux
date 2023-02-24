@@ -187,7 +187,7 @@
     "@libp2p/mplex": "^7.0.0",
     "aegir": "^38.1.0",
     "it-drain": "^2.0.0",
-    "it-pair": "2.0.4",
+    "it-pair": "^2.0.4",
     "it-stream-types": "^1.0.4"
   },
   "browser": {}
