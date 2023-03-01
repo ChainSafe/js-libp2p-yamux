@@ -218,4 +218,28 @@ describe('stream', () => {
     // eslint-disable-next-line @typescript-eslint/dot-notation
     expect(server['localGoAway']).to.equal(GoAwayCode.ProtocolError)
   })
+
+  it('test stream sink error', async () => {
+    const { client, server } = testClientServer()
+
+    // don't let the server respond
+    server.pauseRead()
+
+    const p = pushable()
+    const c1 = client.newStream()
+
+    const sendPipe = pipe(p, c1)
+
+    // send more data than the window size, will trigger a wait
+    p.push(new Uint8Array(defaultConfig.initialStreamWindowSize))
+    p.push(new Uint8Array(defaultConfig.initialStreamWindowSize))
+
+    await sleep(10)
+
+    // the client should close gracefully even though it was waiting to send more data
+    client.close()
+    p.end()
+
+    await sendPipe
+  })
 })

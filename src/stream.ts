@@ -142,6 +142,8 @@ export class YamuxStream implements Stream {
             data = data.subarray(toSend)
           }
         }
+      } catch (e) {
+        this.log?.error('stream sink error id=%s', this._id, e)
       } finally {
         this.log?.('stream sink ended id=%s', this._id)
         this.closeWrite()
