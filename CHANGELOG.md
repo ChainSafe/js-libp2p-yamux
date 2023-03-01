@@ -1,3 +1,10 @@
+## [3.0.7](https://github.com/ChainSafe/js-libp2p-yamux/compare/v3.0.6...v3.0.7) (2023-03-01)
+
+
+### Bug Fixes
+
+* catch stream sink errors ([#25](https://github.com/ChainSafe/js-libp2p-yamux/issues/25)) ([7c7fd07](https://github.com/ChainSafe/js-libp2p-yamux/commit/7c7fd07338379d57b6d0bd1dde12e36797cf3c50))
+
 ## [3.0.6](https://github.com/ChainSafe/js-libp2p-yamux/compare/v3.0.5...v3.0.6) (2023-02-24)
 
 
