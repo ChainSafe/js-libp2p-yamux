@@ -186,7 +186,7 @@
     "@libp2p/interface-stream-muxer-compliance-tests": "^6.0.0",
     "@libp2p/mplex": "^7.0.0",
     "aegir": "^38.1.0",
-    "it-drain": "^2.0.0",
+    "it-drain": "^3.0.1",
     "it-pair": "^2.0.4",
     "it-stream-types": "^1.0.4"
   },
