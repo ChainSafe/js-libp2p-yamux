@@ -1,13 +1,14 @@
 /* eslint-disable @typescript-eslint/dot-notation */
-import { Pushable, pushable } from 'it-pushable'
 import { expect } from 'aegir/chai'
+import { type Pushable, pushable } from 'it-pushable'
 
-import { Decoder } from '../src/decode.js'
-import { encodeHeader } from '../src/encode.js'
-import { Flag, FrameHeader, FrameType, GoAwayCode } from '../src/frame.js'
+import type { Uint8ArrayList } from 'uint8arraylist'
+
 import { timeout } from './util.js'
 import { ERR_DECODE_IN_PROGRESS } from '../src/constants.js'
-import type { Uint8ArrayList } from 'uint8arraylist'
+import { Decoder } from '../src/decode.js'
+import { encodeHeader } from '../src/encode.js'
+import { Flag, type FrameHeader, FrameType, GoAwayCode } from '../src/frame.js'
 
 const frames: Array<{ header: FrameHeader, data?: Uint8Array }> = [
   { header: { type: FrameType.Ping, flag: Flag.SYN, streamID: 0, length: 1 } },

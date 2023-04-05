@@ -1,13 +1,14 @@
 /* eslint-env mocha */
 
-import { pipe } from 'it-pipe'
 import { expect } from 'aegir/chai'
+import { pipe } from 'it-pipe'
+import { type Pushable, pushable } from 'it-pushable'
+
 import { sleep, testClientServer } from './util.js'
-import { HalfStreamState, StreamState } from '../src/stream.js'
-import { Pushable, pushable } from 'it-pushable'
 import { defaultConfig } from '../src/config.js'
 import { ERR_STREAM_RESET } from '../src/constants.js'
 import { GoAwayCode } from '../src/frame.js'
+import { HalfStreamState, StreamState } from '../src/stream.js'
 
 describe('stream', () => {
   it('test send data - small', async () => {

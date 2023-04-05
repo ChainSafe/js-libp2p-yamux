@@ -1,6 +1,7 @@
 import { CodeError } from '@libp2p/interfaces/errors'
+
 import { ERR_DECODE_INVALID_VERSION } from '../src/constants.js'
-import { FrameHeader, HEADER_LENGTH, YAMUX_VERSION } from '../src/frame.js'
+import { type FrameHeader, HEADER_LENGTH, YAMUX_VERSION } from '../src/frame.js'
 
 // Slower encode / decode functions that use dataview
 

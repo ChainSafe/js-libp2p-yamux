@@ -1,8 +1,10 @@
-import { Uint8ArrayList } from 'uint8arraylist'
 import { CodeError } from '@libp2p/interfaces/errors'
-import { FrameHeader, FrameType, HEADER_LENGTH, YAMUX_VERSION } from './frame.js'
-import { ERR_DECODE_INVALID_VERSION, ERR_DECODE_IN_PROGRESS } from './constants.js'
+import { Uint8ArrayList } from 'uint8arraylist'
+
 import type { Source } from 'it-stream-types'
+
+import { ERR_DECODE_INVALID_VERSION, ERR_DECODE_IN_PROGRESS } from './constants.js'
+import { type FrameHeader, FrameType, HEADER_LENGTH, YAMUX_VERSION } from './frame.js'
 
 // used to bitshift in decoding
 // native bitshift can overflow into a negative number, so we bitshift by multiplying by a power of 2

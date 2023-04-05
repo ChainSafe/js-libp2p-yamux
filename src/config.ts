@@ -1,5 +1,6 @@
-import { logger, Logger } from '@libp2p/logger'
 import { CodeError } from '@libp2p/interfaces/errors'
+import { logger, type Logger } from '@libp2p/logger'
+
 import { ERR_INVALID_CONFIG, INITIAL_STREAM_WINDOW, MAX_STREAM_WINDOW } from './constants.js'
 
 // TOOD use config items or delete them

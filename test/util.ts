@@ -1,9 +1,11 @@
 import { logger } from '@libp2p/logger'
-import type { Transform } from 'it-stream-types'
 import { duplexPair } from 'it-pair/duplex'
 import { pipe } from 'it-pipe'
+
 import type { Config } from '../src/config.js'
-import { Yamux, YamuxMuxer, YamuxMuxerInit } from '../src/muxer.js'
+import type { Transform } from 'it-stream-types'
+
+import { Yamux, YamuxMuxer, type YamuxMuxerInit } from '../src/muxer.js'
 
 const isClient = (() => {
   let client = false
@@ -110,9 +112,9 @@ export function testClientServer (conf: YamuxMuxerInit = {}): {
 }
 
 export async function timeout (ms: number): Promise<unknown> {
-  return await new Promise((_resolve, reject) => setTimeout(() => { reject(new Error(`timeout after ${ms}ms`)) }, ms))
+  return new Promise((_resolve, reject) => setTimeout(() => { reject(new Error(`timeout after ${ms}ms`)) }, ms))
 }
 
 export async function sleep (ms: number): Promise<unknown> {
-  return await new Promise(resolve => setTimeout(() => { resolve(ms) }, ms))
+  return new Promise(resolve => setTimeout(() => { resolve(ms) }, ms))
 }
