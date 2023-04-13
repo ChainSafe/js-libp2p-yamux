@@ -1,3 +1,11 @@
+## [3.0.9](https://github.com/ChainSafe/js-libp2p-yamux/compare/v3.0.8...v3.0.9) (2023-04-13)
+
+
+### Dependencies
+
+* bump @libp2p/interface-connection from 3.1.1 to 4.0.0 ([#32](https://github.com/ChainSafe/js-libp2p-yamux/issues/32)) ([e8ac91d](https://github.com/ChainSafe/js-libp2p-yamux/commit/e8ac91d6ba448cba75adc43a4fc580e46129398f))
+* bump it-pipe from 2.0.5 to 3.0.1 ([#30](https://github.com/ChainSafe/js-libp2p-yamux/issues/30)) ([e396e6e](https://github.com/ChainSafe/js-libp2p-yamux/commit/e396e6ed68e7cccf9a3e58e793ca91d94ad35e3e))
+
 ## [3.0.8](https://github.com/ChainSafe/js-libp2p-yamux/compare/v3.0.7...v3.0.8) (2023-04-13)
 
 
