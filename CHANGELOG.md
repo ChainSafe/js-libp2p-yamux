@@ -1,3 +1,10 @@
+## [3.0.8](https://github.com/ChainSafe/js-libp2p-yamux/compare/v3.0.7...v3.0.8) (2023-04-13)
+
+
+### Dependencies
+
+* update any-signal to 4.x.x ([#33](https://github.com/ChainSafe/js-libp2p-yamux/issues/33)) ([5f3e5aa](https://github.com/ChainSafe/js-libp2p-yamux/commit/5f3e5aad85b659cb18a0e901e10e3f0466bedd6b))
+
 ## [3.0.7](https://github.com/ChainSafe/js-libp2p-yamux/compare/v3.0.6...v3.0.7) (2023-03-01)
 
 
