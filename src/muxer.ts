@@ -5,7 +5,7 @@ import { pipe } from 'it-pipe'
 import type { Sink, Source } from 'it-stream-types'
 import { pushable, Pushable } from 'it-pushable'
 import { CodeError } from '@libp2p/interfaces/errors'
-import anySignal from 'any-signal'
+import { anySignal, ClearableSignal } from 'any-signal'
 import { Flag, FrameHeader, FrameType, GoAwayCode, stringifyHeader } from './frame.js'
 import { StreamState, YamuxStream } from './stream.js'
 import { encodeHeader } from './encode.js'
@@ -96,11 +96,15 @@ export class YamuxMuxer implements StreamMuxer {
     })
 
     this.sink = async (source: Source<Uint8Array>): Promise<void> => {
+      let signal: ClearableSignal | undefined
+
+      if (this._init.signal != null) {
+        signal = anySignal([this.closeController.signal, this._init.signal])
+      }
+
       source = abortableSource(
         source,
-        this._init.signal !== undefined
-          ? anySignal([this.closeController.signal, this._init.signal])
-          : this.closeController.signal,
+        signal ?? this.closeController.signal,
         { returnOnAbort: true }
       )
 
@@ -129,6 +133,10 @@ export class YamuxMuxer implements StreamMuxer {
         }
 
         error = err as Error
+      } finally {
+        if (signal != null) {
+          signal.clear()
+        }
       }
 
       this.log?.('muxer sink ended')
