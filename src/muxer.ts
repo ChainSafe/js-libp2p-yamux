@@ -90,7 +90,7 @@ export class YamuxMuxer implements StreamMuxer {
 
     this.source = pushable({
       onEnd: (err?: Error): void => {
-        this.log?.('muxer source ended')
+        this.log?.trace('muxer source ended')
         this.close(err)
       }
     })
@@ -139,7 +139,7 @@ export class YamuxMuxer implements StreamMuxer {
         }
       }
 
-      this.log?.('muxer sink ended')
+      this.log?.trace('muxer sink ended')
 
       this.close(error, reason)
     }
@@ -153,7 +153,7 @@ export class YamuxMuxer implements StreamMuxer {
     this.nextPingID = 0
     this.rtt = 0
 
-    this.log?.('muxer created')
+    this.log?.trace('muxer created')
 
     if (this.config.enableKeepAlive) {
       this.keepAliveLoop().catch(e => this.log?.error('keepalive error: %s', e))
@@ -180,7 +180,7 @@ export class YamuxMuxer implements StreamMuxer {
       throw new CodeError('max outbound streams exceeded', ERR_MAX_OUTBOUND_STREAMS_EXCEEDED)
     }
 
-    this.log?.('new outgoing stream id=%s', id)
+    this.log?.trace('new outgoing stream id=%s', id)
 
     const stream = this._newStream(id, name, StreamState.Init, 'outbound')
     this._streams.set(id, stream)
@@ -274,7 +274,7 @@ export class YamuxMuxer implements StreamMuxer {
     // If reason was provided, use that, otherwise use the presence of `err` to determine the reason
     reason = reason ?? (err === undefined ? GoAwayCode.InternalError : GoAwayCode.NormalTermination)
 
-    this.log?.('muxer close reason=%s error=%s', GoAwayCode[reason], err)
+    this.log?.trace('muxer close reason=%s error=%s', GoAwayCode[reason], err)
 
     // If err is provided, abort all underlying streams, else close all underlying streams
     if (err === undefined) {
@@ -347,7 +347,7 @@ export class YamuxMuxer implements StreamMuxer {
 
   private async keepAliveLoop (): Promise<void> {
     const abortPromise = new Promise((_resolve, reject) => { this.closeController.signal.addEventListener('abort', reject, { once: true }) })
-    this.log?.('muxer keepalive enabled interval=%s', this.config.keepAliveInterval)
+    this.log?.trace('muxer keepalive enabled interval=%s', this.config.keepAliveInterval)
     while (true) {
       let timeoutId
       try {
@@ -399,10 +399,10 @@ export class YamuxMuxer implements StreamMuxer {
   private handlePing (header: FrameHeader): void {
     // If the ping  is initiated by the sender, send a response
     if (header.flag === Flag.SYN) {
-      this.log?.('received ping request pingId=%s', header.length)
+      this.log?.trace('received ping request pingId=%s', header.length)
       this.sendPing(header.length, Flag.ACK)
     } else if (header.flag === Flag.ACK) {
-      this.log?.('received ping response pingId=%s', header.length)
+      this.log?.trace('received ping response pingId=%s', header.length)
       this.handlePingResponse(header.length)
     } else {
       // Invalid state
@@ -425,7 +425,7 @@ export class YamuxMuxer implements StreamMuxer {
   }
 
   private handleGoAway (reason: GoAwayCode): void {
-    this.log?.('received GoAway reason=%s', GoAwayCode[reason] ?? 'unknown')
+    this.log?.trace('received GoAway reason=%s', GoAwayCode[reason] ?? 'unknown')
     this.remoteGoAway = reason
 
     // If the other side is friendly, they would have already closed all streams before sending a GoAway
@@ -482,7 +482,7 @@ export class YamuxMuxer implements StreamMuxer {
       return
     }
 
-    this.log?.('new incoming stream id=%s', id)
+    this.log?.trace('new incoming stream id=%s', id)
 
     if (this.localGoAway !== undefined) {
       // reject (reset) immediately if we are doing a go away
@@ -530,9 +530,9 @@ export class YamuxMuxer implements StreamMuxer {
 
   private sendPing (pingId: number, flag: Flag = Flag.SYN): void {
     if (flag === Flag.SYN) {
-      this.log?.('sending ping request pingId=%s', pingId)
+      this.log?.trace('sending ping request pingId=%s', pingId)
     } else {
-      this.log?.('sending ping response pingId=%s', pingId)
+      this.log?.trace('sending ping response pingId=%s', pingId)
     }
     this.sendFrame({
       type: FrameType.Ping,

@@ -114,7 +114,7 @@ export class YamuxStream implements Stream {
 
     this.sourceInput = pushable({
       onEnd: (err?: Error) => {
-        this.log?.('stream source ended id=%s', this._id, err)
+        this.log?.trace('stream source ended id=%s', this._id, err)
         this.closeRead()
       }
     })
@@ -145,7 +145,7 @@ export class YamuxStream implements Stream {
       } catch (e) {
         this.log?.error('stream sink error id=%s', this._id, e)
       } finally {
-        this.log?.('stream sink ended id=%s', this._id)
+        this.log?.trace('stream sink ended id=%s', this._id)
         this.closeWrite()
       }
     }
@@ -167,7 +167,7 @@ export class YamuxStream implements Stream {
   }
 
   close (): void {
-    this.log?.('stream close id=%s', this._id)
+    this.log?.trace('stream close id=%s', this._id)
     this.closeRead()
     this.closeWrite()
   }
@@ -181,7 +181,7 @@ export class YamuxStream implements Stream {
       return
     }
 
-    this.log?.('stream close read id=%s', this._id)
+    this.log?.trace('stream close read id=%s', this._id)
 
     this.readState = HalfStreamState.Closed
 
@@ -203,7 +203,7 @@ export class YamuxStream implements Stream {
       return
     }
 
-    this.log?.('stream close write id=%s', this._id)
+    this.log?.trace('stream close write id=%s', this._id)
 
     this.writeState = HalfStreamState.Closed
 
@@ -235,7 +235,7 @@ export class YamuxStream implements Stream {
         throw new Error('unreachable')
     }
 
-    this.log?.('stream abort id=%s error=%s', this._id, err)
+    this.log?.trace('stream abort id=%s error=%s', this._id, err)
 
     this.onReset(new CodeError(String(err) ?? 'stream aborted', ERR_STREAM_ABORT))
   }
@@ -245,7 +245,7 @@ export class YamuxStream implements Stream {
       return
     }
 
-    this.log?.('stream reset id=%s', this._id)
+    this.log?.trace('stream reset id=%s', this._id)
 
     this.onReset(new CodeError('stream reset', ERR_STREAM_RESET))
   }
@@ -301,7 +301,7 @@ export class YamuxStream implements Stream {
    * handleWindowUpdate is called when the stream receives a window update frame
    */
   handleWindowUpdate (header: FrameHeader): void {
-    this.log?.('stream received window update id=%s', this._id)
+    this.log?.trace('stream received window update id=%s', this._id)
     this.processFlags(header.flag)
 
     // increase send window
@@ -317,7 +317,7 @@ export class YamuxStream implements Stream {
    * handleData is called when the stream receives a data frame
    */
   async handleData (header: FrameHeader, readData: () => Promise<Uint8ArrayList>): Promise<void> {
-    this.log?.('stream received data id=%s', this._id)
+    this.log?.trace('stream received data id=%s', this._id)
     this.processFlags(header.flag)
 
     // check that our recv window is not exceeded
@@ -351,7 +351,7 @@ export class YamuxStream implements Stream {
    * finish sets the state and triggers eventual garbage collection of the stream
    */
   private finish (): void {
-    this.log?.('stream finished id=%s', this._id)
+    this.log?.trace('stream finished id=%s', this._id)
     this.state = StreamState.Finished
     this.stat.timeline.close = Date.now()
     this.onStreamEnd()
