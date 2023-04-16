@@ -1,3 +1,10 @@
+## [3.0.10](https://github.com/ChainSafe/js-libp2p-yamux/compare/v3.0.9...v3.0.10) (2023-04-16)
+
+
+### Bug Fixes
+
+* use trace logging for happy paths ([#35](https://github.com/ChainSafe/js-libp2p-yamux/issues/35)) ([2c64584](https://github.com/ChainSafe/js-libp2p-yamux/commit/2c64584bc20692ab9bad7d96621579c8f1c9fc6f))
+
 ## [3.0.9](https://github.com/ChainSafe/js-libp2p-yamux/compare/v3.0.8...v3.0.9) (2023-04-13)
 
 
