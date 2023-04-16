@@ -274,7 +274,11 @@ export class YamuxMuxer implements StreamMuxer {
     // If reason was provided, use that, otherwise use the presence of `err` to determine the reason
     reason = reason ?? (err === undefined ? GoAwayCode.InternalError : GoAwayCode.NormalTermination)
 
-    this.log?.trace('muxer close reason=%s error=%s', GoAwayCode[reason], err)
+    if (err != null) {
+      this.log?.error('muxer close reason=%s error=%s', GoAwayCode[reason], err)
+    } else {
+      this.log?.trace('muxer close reason=%s', GoAwayCode[reason])
+    }
 
     // If err is provided, abort all underlying streams, else close all underlying streams
     if (err === undefined) {

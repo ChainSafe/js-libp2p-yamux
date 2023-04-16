@@ -114,7 +114,12 @@ export class YamuxStream implements Stream {
 
     this.sourceInput = pushable({
       onEnd: (err?: Error) => {
-        this.log?.trace('stream source ended id=%s', this._id, err)
+        if (err != null) {
+          this.log?.error('stream source ended id=%s', this._id, err)
+        } else {
+          this.log?.trace('stream source ended id=%s', this._id)
+        }
+
         this.closeRead()
       }
     })
@@ -235,7 +240,11 @@ export class YamuxStream implements Stream {
         throw new Error('unreachable')
     }
 
-    this.log?.trace('stream abort id=%s error=%s', this._id, err)
+    if (err != null) {
+      this.log?.error('stream abort id=%s error=%s', this._id, err)
+    } else {
+      this.log?.trace('stream abort id=%s', this._id)
+    }
 
     this.onReset(new CodeError(String(err) ?? 'stream aborted', ERR_STREAM_ABORT))
   }
