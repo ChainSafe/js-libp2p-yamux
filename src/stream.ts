@@ -51,9 +51,9 @@ export class YamuxStream implements Stream {
   /** Input to the read side of the stream */
   sourceInput: Pushable<Uint8ArrayList>
   /** Read side of the stream */
-  source: Source<Uint8ArrayList>
+  source: AsyncGenerator<Uint8ArrayList>
   /** Write side of the stream */
-  sink: Sink<Uint8Array | Uint8ArrayList>
+  sink: Sink<Source<Uint8ArrayList | Uint8Array>, Promise<void>>
 
   private readonly config: Config
   private readonly log?: Logger

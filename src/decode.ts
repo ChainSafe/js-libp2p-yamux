@@ -29,16 +29,16 @@ export function decodeHeader (data: Uint8Array): FrameHeader {
  * Decodes yamux frames from a source
  */
 export class Decoder {
-  private readonly source: Source<Uint8Array>
+  private readonly source: Source<Uint8Array | Uint8ArrayList>
   /** Buffer for in-progress frames */
   private readonly buffer: Uint8ArrayList
   /** Used to sanity check against decoding while in an inconsistent state */
   private frameInProgress: boolean
 
-  constructor (source: Source<Uint8Array>) {
+  constructor (source: Source<Uint8Array | Uint8ArrayList>) {
     // Normally, when entering a for-await loop with an iterable/async iterable, the only ways to exit the loop are:
     // 1. exhaust the iterable
-    // 2. throw an error - slow, undesireable if there's not actually an error
+    // 2. throw an error - slow, undesirable if there's not actually an error
     // 3. break or return - calls the iterable's `return` method, finalizing the iterable, no more iteration possible
     //
     // In this case, we want to enter (and exit) a for-await loop per chunked data frame and continue processing the iterable.
