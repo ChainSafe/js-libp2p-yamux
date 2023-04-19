@@ -1,3 +1,14 @@
+## [4.0.0](https://github.com/ChainSafe/js-libp2p-yamux/compare/v3.0.10...v4.0.0) (2023-04-19)
+
+
+### ⚠ BREAKING CHANGES
+
+* the type of the source/sink properties have changed
+
+### Dependencies
+
+* update to new stream type deps ([#36](https://github.com/ChainSafe/js-libp2p-yamux/issues/36)) ([a2d841d](https://github.com/ChainSafe/js-libp2p-yamux/commit/a2d841d7e5bac4a5659bdbe98e962bcaab61ed65))
+
 ## [3.0.10](https://github.com/ChainSafe/js-libp2p-yamux/compare/v3.0.9...v3.0.10) (2023-04-16)
 
 
