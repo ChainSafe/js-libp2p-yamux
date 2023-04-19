@@ -184,7 +184,7 @@
   "devDependencies": {
     "@dapplion/benchmark": "^0.2.2",
     "@libp2p/interface-stream-muxer-compliance-tests": "^6.0.0",
-    "@libp2p/mplex": "^7.0.0",
+    "@libp2p/mplex": "^8.0.1",
     "aegir": "^38.1.0",
     "it-drain": "^2.0.0",
     "it-pair": "^2.0.4",
