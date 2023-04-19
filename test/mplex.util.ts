@@ -1,4 +1,4 @@
-import type { Transform } from 'it-stream-types'
+import type { Source, Transform } from 'it-stream-types'
 import { duplexPair } from 'it-pair/duplex'
 import { pipe } from 'it-pipe'
 import { mplex } from '@libp2p/mplex'
@@ -16,7 +16,7 @@ export function testYamuxMuxer (name: string, client: boolean, conf: StreamMuxer
 /**
  * Create a transform that can be paused and unpaused
  */
-export function pauseableTransform <A> (): { transform: Transform<A, A>, pause: () => void, unpause: () => void } {
+export function pauseableTransform <A> (): { transform: Transform<Source<A>, AsyncGenerator<A>>, pause: () => void, unpause: () => void } {
   let resolvePausePromise: ((value: unknown) => void) | undefined
   let pausePromise: Promise<unknown> | undefined
   const unpause = (): void => {
@@ -27,7 +27,7 @@ export function pauseableTransform <A> (): { transform: Transform<A, A>, pause: 
       resolvePausePromise = resolve
     })
   }
-  const transform: Transform<A, A> = async function * (source) {
+  const transform: Transform<Source<A>, AsyncGenerator<A>> = async function * (source) {
     for await (const d of source) {
       if (pausePromise !== undefined) {
         await pausePromise

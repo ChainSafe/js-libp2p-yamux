@@ -39,7 +39,7 @@ export class Yamux implements StreamMuxerFactory {
 export class YamuxMuxer implements StreamMuxer {
   protocol = YAMUX_PROTOCOL_ID
   source: Pushable<Uint8Array>
-  sink: Sink<Uint8Array>
+  sink: Sink<Source<Uint8ArrayList | Uint8Array>, Promise<void>>
 
   private readonly _init: YamuxMuxerInit
   private readonly config: Config
@@ -95,7 +95,7 @@ export class YamuxMuxer implements StreamMuxer {
       }
     })
 
-    this.sink = async (source: Source<Uint8Array>): Promise<void> => {
+    this.sink = async (source: Source<Uint8ArrayList | Uint8Array>): Promise<void> => {
       let signal: ClearableSignal | undefined
 
       if (this._init.signal != null) {
