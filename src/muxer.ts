@@ -392,7 +392,7 @@ export class YamuxMuxer implements StreamMuxer {
       switch (header.type) {
         case FrameType.Data:
         case FrameType.WindowUpdate:
-        { await this.handleStreamMessage(header, readData); return }
+        { return this.handleStreamMessage(header, readData); }
         default:
           // Invalid state
           throw new CodeError('Invalid frame type', ERR_INVALID_FRAME, { header })
@@ -471,7 +471,7 @@ export class YamuxMuxer implements StreamMuxer {
           throw new Error('unreachable')
         }
 
-        await stream.handleData(header, readData); return
+        return stream.handleData(header, readData);
       }
       default:
         throw new Error('unreachable')
