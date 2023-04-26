@@ -1,7 +1,15 @@
 import { FrameHeader, HEADER_LENGTH } from './frame.js'
 
+const allocHeaderFn = (): () => Uint8Array => {
+  if (globalThis.Buffer) {
+    return () => globalThis.Buffer.allocUnsafe(HEADER_LENGTH)
+  }
+  return () => new Uint8Array(HEADER_LENGTH);
+}
+const allocHeader = allocHeaderFn();
+
 export function encodeHeader (header: FrameHeader): Uint8Array {
-  const frame = new Uint8Array(HEADER_LENGTH)
+  const frame = allocHeader()
 
   // always assume version 0
   // frameView.setUint8(0, header.version)
