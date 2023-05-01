@@ -1,3 +1,10 @@
+## [4.0.1](https://github.com/ChainSafe/js-libp2p-yamux/compare/v4.0.0...v4.0.1) (2023-05-01)
+
+
+### Bug Fixes
+
+* updated reset for abort controller ([#26](https://github.com/ChainSafe/js-libp2p-yamux/issues/26)) ([6fc5ebd](https://github.com/ChainSafe/js-libp2p-yamux/commit/6fc5ebd6296286e40f761271f42c60d70b729b14))
+
 ## [4.0.0](https://github.com/ChainSafe/js-libp2p-yamux/compare/v3.0.10...v4.0.0) (2023-04-19)
 
 
