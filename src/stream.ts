@@ -164,7 +164,7 @@ export class YamuxStream implements Stream {
       }
     } catch (err) {
       const errCode = (err as { code: string }).code
-      if (errCode !== ERR_STREAM_ABORT && errCode !== ERR_STREAM_RESET) {
+      if (errCode !== ERR_STREAM_ABORT) {
         this.log?.error('stream source error id=%s', this._id, err)
         throw err
       }
