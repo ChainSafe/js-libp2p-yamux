@@ -95,7 +95,7 @@ export class Decoder {
       return
     }
 
-    const header = decodeHeader(this.buffer.slice(0, HEADER_LENGTH))
+    const header = decodeHeader(this.buffer.subarray(0, HEADER_LENGTH))
     this.buffer.consume(HEADER_LENGTH)
     return header
   }
