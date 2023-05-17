@@ -1,3 +1,15 @@
+## [4.0.2](https://github.com/ChainSafe/js-libp2p-yamux/compare/v4.0.1...v4.0.2) (2023-05-17)
+
+
+### Bug Fixes
+
+* improve decode performance with subarray ([#49](https://github.com/ChainSafe/js-libp2p-yamux/issues/49)) ([684de7c](https://github.com/ChainSafe/js-libp2p-yamux/commit/684de7cd5f8614ab34122c3f4bb6671c9288618c))
+
+
+### Dependencies
+
+* upgrade deps ([#52](https://github.com/ChainSafe/js-libp2p-yamux/issues/52)) ([d00570c](https://github.com/ChainSafe/js-libp2p-yamux/commit/d00570c9313c7f141559827be58f122db719dbaf))
+
 ## [4.0.1](https://github.com/ChainSafe/js-libp2p-yamux/compare/v4.0.0...v4.0.1) (2023-05-01)
 
 
