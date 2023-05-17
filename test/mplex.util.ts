@@ -1,8 +1,8 @@
-import type { Source, Transform } from 'it-stream-types'
+import { mplex } from '@libp2p/mplex'
 import { duplexPair } from 'it-pair/duplex'
 import { pipe } from 'it-pipe'
-import { mplex } from '@libp2p/mplex'
 import type { StreamMuxer, StreamMuxerInit } from '@libp2p/interface-stream-muxer'
+import type { Source, Transform } from 'it-stream-types'
 
 const factory = mplex()()
 
@@ -82,9 +82,9 @@ export function testClientServer (conf: StreamMuxerInit = {}): {
 }
 
 export async function timeout (ms: number): Promise<unknown> {
-  return await new Promise((_resolve, reject) => setTimeout(() => { reject(new Error(`timeout after ${ms}ms`)) }, ms))
+  return new Promise((_resolve, reject) => setTimeout(() => { reject(new Error(`timeout after ${ms}ms`)) }, ms))
 }
 
 export async function sleep (ms: number): Promise<unknown> {
-  return await new Promise(resolve => setTimeout(() => { resolve(ms) }, ms))
+  return new Promise(resolve => setTimeout(() => { resolve(ms) }, ms))
 }

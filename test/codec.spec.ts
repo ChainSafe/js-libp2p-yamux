@@ -1,8 +1,7 @@
 import { expect } from 'aegir/chai'
-
 import { decodeHeader } from '../src/decode.js'
 import { encodeHeader } from '../src/encode.js'
-import { Flag, FrameHeader, FrameType, GoAwayCode, stringifyHeader } from '../src/frame.js'
+import { Flag, type FrameHeader, FrameType, GoAwayCode, stringifyHeader } from '../src/frame.js'
 import { decodeHeaderNaive, encodeHeaderNaive } from './codec.util.js'
 
 const frames: Array<{ header: FrameHeader, data?: Uint8Array }> = [

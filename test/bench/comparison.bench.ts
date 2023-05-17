@@ -1,8 +1,8 @@
 import { itBench } from '@dapplion/benchmark'
 import drain from 'it-drain'
 import { pipe } from 'it-pipe'
-import { testClientServer as testYamuxClientServer } from '../util.js'
 import { testClientServer as testMplexClientServer } from '../mplex.util.js'
+import { testClientServer as testYamuxClientServer } from '../util.js'
 
 describe('comparison benchmark', () => {
   for (const { impl, name } of [

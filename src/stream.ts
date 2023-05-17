@@ -1,13 +1,13 @@
-import type { Stream, StreamStat } from '@libp2p/interface-connection'
-import { pushable, Pushable } from 'it-pushable'
-import type { Sink, Source } from 'it-stream-types'
 import { CodeError } from '@libp2p/interfaces/errors'
 import { abortableSource } from 'abortable-iterator'
-import type { Uint8ArrayList } from 'uint8arraylist'
-import { Flag, FrameHeader, FrameType, HEADER_LENGTH } from './frame.js'
+import { pushable, type Pushable } from 'it-pushable'
 import { ERR_RECV_WINDOW_EXCEEDED, ERR_STREAM_ABORT, ERR_STREAM_RESET, INITIAL_STREAM_WINDOW } from './constants.js'
-import type { Logger } from '@libp2p/logger'
+import { Flag, type FrameHeader, FrameType, HEADER_LENGTH } from './frame.js'
 import type { Config } from './config.js'
+import type { Stream, StreamStat } from '@libp2p/interface-connection'
+import type { Logger } from '@libp2p/logger'
+import type { Sink, Source } from 'it-stream-types'
+import type { Uint8ArrayList } from 'uint8arraylist'
 
 export enum StreamState {
   Init,

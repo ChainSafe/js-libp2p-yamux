@@ -1,7 +1,7 @@
-import { Uint8ArrayList } from 'uint8arraylist'
 import { CodeError } from '@libp2p/interfaces/errors'
-import { FrameHeader, FrameType, HEADER_LENGTH, YAMUX_VERSION } from './frame.js'
+import { Uint8ArrayList } from 'uint8arraylist'
 import { ERR_DECODE_INVALID_VERSION, ERR_DECODE_IN_PROGRESS } from './constants.js'
+import { type FrameHeader, FrameType, HEADER_LENGTH, YAMUX_VERSION } from './frame.js'
 import type { Source } from 'it-stream-types'
 
 // used to bitshift in decoding
