@@ -185,7 +185,7 @@
     "@dapplion/benchmark": "^0.2.2",
     "@libp2p/interface-stream-muxer-compliance-tests": "^7.0.0",
     "@libp2p/mplex": "^8.0.0",
-    "aegir": "^38.1.0",
+    "aegir": "^39.0.7",
     "it-drain": "^3.0.1",
     "it-pair": "^2.0.6",
     "it-stream-types": "^2.0.1"
