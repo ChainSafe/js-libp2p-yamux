@@ -1,10 +1,10 @@
 /* eslint-env mocha */
 
+import { expect } from 'aegir/chai'
 import { duplexPair } from 'it-pair/duplex'
 import { pipe } from 'it-pipe'
-import { expect } from 'aegir/chai'
-import { sleep, testClientServer, testYamuxMuxer } from './util.js'
 import { ERR_MUXER_LOCAL_CLOSED } from '../src/constants.js'
+import { sleep, testClientServer, testYamuxMuxer } from './util.js'
 
 describe('muxer', () => {
   it('test repeated close', async () => {

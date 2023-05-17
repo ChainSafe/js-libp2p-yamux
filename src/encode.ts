@@ -1,4 +1,5 @@
-import { FrameHeader, HEADER_LENGTH } from './frame.js'
+import { HEADER_LENGTH } from './frame.js'
+import type { FrameHeader } from './frame.js'
 
 export function encodeHeader (header: FrameHeader): Uint8Array {
   const frame = new Uint8Array(HEADER_LENGTH)
