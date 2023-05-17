@@ -1,13 +1,14 @@
-import type { Stream, StreamStat } from '@libp2p/interface-connection'
+import type { StreamStat } from '@libp2p/interface-connection'
 import { pushable, Pushable } from 'it-pushable'
 import type { Sink, Source } from 'it-stream-types'
 import { CodeError } from '@libp2p/interfaces/errors'
 import { abortableSource } from 'abortable-iterator'
-import type { Uint8ArrayList } from 'uint8arraylist'
+import { Uint8ArrayList } from 'uint8arraylist'
 import { Flag, FrameHeader, FrameType, HEADER_LENGTH } from './frame.js'
-import { ERR_RECV_WINDOW_EXCEEDED, ERR_STREAM_ABORT, ERR_STREAM_RESET, INITIAL_STREAM_WINDOW } from './constants.js'
+import { ERR_RECV_WINDOW_EXCEEDED, ERR_STREAM_ABORT, INITIAL_STREAM_WINDOW } from './constants.js'
 import type { Logger } from '@libp2p/logger'
 import type { Config } from './config.js'
+import { AbstractStream, type AbstractStreamInit } from '@libp2p/interface-stream-muxer/stream'
 
 export enum StreamState {
   Init,
@@ -23,11 +24,11 @@ export enum HalfStreamState {
   Reset,
 }
 
-export interface YamuxStreamInit {
-  id: number
+export interface YamuxStreamInit extends AbstractStreamInit {
+  id: string
   name?: string
-  sendFrame: (header: FrameHeader, body?: Uint8Array) => void
-  onStreamEnd: () => void
+  sendFrame: (header: FrameHeader, body?: Uint8ArrayList) => void
+  onEnd?: (err?: Error) => void
   getRTT: () => number
   config: Config
   state: StreamState
@@ -36,7 +37,7 @@ export interface YamuxStreamInit {
 }
 
 /** YamuxStream is used to represent a logical stream within a session */
-export class YamuxStream implements Stream {
+export class YamuxStream extends AbstractStream {
   id: string
   name?: string
   stat: StreamStat
@@ -77,17 +78,16 @@ export class YamuxStream implements Stream {
   private epochStart: number
   private readonly getRTT: () => number
 
-  /** Used to stop the sink */
-  private readonly abortController: AbortController
+  private readonly sendFrame: (header: FrameHeader, body?: Uint8ArrayList) => void
 
-  private readonly sendFrame: (header: FrameHeader, body?: Uint8Array) => void
-  private readonly onStreamEnd: () => void
+  private readonly abortObserver: AbortController
 
   constructor (init: YamuxStreamInit) {
+    super(init)
+
     this.config = init.config
-    this.log = init.log
-    this._id = init.id
-    this.id = String(init.id)
+    this.id = init.id
+    this._id = parseInt(init.id)
     this.name = init.name
     this.stat = {
       direction: init.direction,
@@ -107,10 +107,11 @@ export class YamuxStream implements Stream {
     this.epochStart = Date.now()
     this.getRTT = init.getRTT
 
-    this.abortController = new AbortController()
-
     this.sendFrame = init.sendFrame
-    this.onStreamEnd = init.onStreamEnd
+    this.log = init.log
+
+    this.source = this.createSource()
+    this.abortObserver = new AbortController()
 
     this.sourceInput = pushable({
       onEnd: (err?: Error) => {
@@ -124,14 +125,12 @@ export class YamuxStream implements Stream {
       }
     })
 
-    this.source = this.createSource()
-
-    this.sink = async (source: Source<Uint8Array | Uint8ArrayList>): Promise<void> => {
+    this.sink = async (source: Source<Uint8ArrayList | Uint8Array>): Promise<void> => {
       if (this.writeState !== HalfStreamState.Open) {
         throw new Error('stream closed for writing')
       }
 
-      source = abortableSource(source, this.abortController.signal, { returnOnAbort: true })
+      source = abortableSource(source, this.abortObserver.signal, { returnOnAbort: true })
 
       try {
         for await (let data of source) {
@@ -142,7 +141,8 @@ export class YamuxStream implements Stream {
 
             // send as much as we can
             const toSend = Math.min(this.sendWindowCapacity, this.config.maxMessageSize - HEADER_LENGTH, data.length)
-            this.sendData(data.subarray(0, toSend))
+
+            this.sendData(new Uint8ArrayList(data.subarray(0, toSend)))
             this.sendWindowCapacity -= toSend
             data = data.subarray(toSend)
           }
@@ -171,122 +171,13 @@ export class YamuxStream implements Stream {
     }
   }
 
-  close (): void {
-    this.log?.trace('stream close id=%s', this._id)
-    this.closeRead()
-    this.closeWrite()
-  }
-
-  closeRead (): void {
-    if (this.state === StreamState.Finished) {
-      return
-    }
-
-    if (this.readState !== HalfStreamState.Open) {
-      return
-    }
-
-    this.log?.trace('stream close read id=%s', this._id)
-
-    this.readState = HalfStreamState.Closed
-
-    // close the source
-    this.sourceInput.end()
-
-    // If the both read and write are closed, finish it
-    if (this.writeState !== HalfStreamState.Open) {
-      this.finish()
-    }
-  }
-
-  closeWrite (): void {
-    if (this.state === StreamState.Finished) {
-      return
-    }
-
-    if (this.writeState !== HalfStreamState.Open) {
-      return
-    }
-
-    this.log?.trace('stream close write id=%s', this._id)
-
-    this.writeState = HalfStreamState.Closed
-
-    this.sendClose()
-
-    // close the sink
-    this.abortController.abort()
-
-    // If the both read and write are closed, finish it
-    if (this.readState !== HalfStreamState.Open) {
-      this.finish()
-    }
-  }
-
-  abort (err?: Error): void {
-    switch (this.state) {
-      case StreamState.Finished:
-        return
-      case StreamState.Init:
-        // we haven't sent anything, so we don't need to send a reset.
-        break
-      case StreamState.SYNSent:
-      case StreamState.SYNReceived:
-      case StreamState.Established:
-        // at least one direction is open, we need to send a reset.
-        this.sendReset()
-        break
-      default:
-        throw new Error('unreachable')
-    }
-
-    if (err != null) {
-      this.log?.error('stream abort id=%s error=%s', this._id, err)
-    } else {
-      this.log?.trace('stream abort id=%s', this._id)
-    }
-
-    this.onReset(new CodeError(String(err) ?? 'stream aborted', ERR_STREAM_ABORT))
-  }
-
-  reset (): void {
-    if (this.state === StreamState.Finished) {
-      return
-    }
-
-    this.log?.trace('stream reset id=%s', this._id)
-
-    this.onReset(new CodeError('stream reset', ERR_STREAM_RESET))
-  }
-
-  /**
-   * Called when initiating and receiving a stream reset
-   */
-  private onReset (err: Error): void {
-    // Update stream state to reset / finished
-    if (this.writeState === HalfStreamState.Open) {
-      this.writeState = HalfStreamState.Reset
-    }
-    if (this.readState === HalfStreamState.Open) {
-      this.readState = HalfStreamState.Reset
-    }
-    this.state = StreamState.Finished
-
-    // close both the source and sink
-    this.sourceInput.end(err)
-    this.abortController.abort()
-
-    // and finish the stream
-    this.finish()
-  }
-
   /**
    * Wait for the send window to be non-zero
    *
    * Will throw with ERR_STREAM_ABORT if the stream gets aborted
    */
   async waitForSendWindowCapacity (): Promise<void> {
-    if (this.abortController.signal.aborted) {
+    if (this.abortObserver.signal.aborted) {
       throw new CodeError('stream aborted', ERR_STREAM_ABORT)
     }
     if (this.sendWindowCapacity > 0) {
@@ -296,10 +187,10 @@ export class YamuxStream implements Stream {
     const abort = (): void => {
       reject(new CodeError('stream aborted', ERR_STREAM_ABORT))
     }
-    this.abortController.signal.addEventListener('abort', abort)
+    this.abortObserver.signal.addEventListener('abort', abort)
     await new Promise((_resolve, _reject) => {
       this.sendWindowCapacityUpdate = () => {
-        this.abortController.signal.removeEventListener('abort', abort)
+        this.abortObserver.signal.removeEventListener('abort', abort)
         _resolve(undefined)
       }
       reject = _reject
@@ -323,23 +214,6 @@ export class YamuxStream implements Stream {
   }
 
   /**
-   * handleData is called when the stream receives a data frame
-   */
-  async handleData (header: FrameHeader, readData: () => Promise<Uint8ArrayList>): Promise<void> {
-    this.log?.trace('stream received data id=%s', this._id)
-    this.processFlags(header.flag)
-
-    // check that our recv window is not exceeded
-    if (this.recvWindowCapacity < header.length) {
-      throw new CodeError('receive window exceeded', ERR_RECV_WINDOW_EXCEEDED, { available: this.recvWindowCapacity, recv: header.length })
-    }
-
-    const data = await readData()
-    this.recvWindowCapacity -= header.length
-    this.sourceInput.push(data)
-  }
-
-  /**
    * processFlags is used to update the state of the stream based on set flags, if any.
    */
   private processFlags (flags: number): void {
@@ -354,16 +228,6 @@ export class YamuxStream implements Stream {
     if ((flags & Flag.RST) === Flag.RST) {
       this.reset()
     }
-  }
-
-  /**
-   * finish sets the state and triggers eventual garbage collection of the stream
-   */
-  private finish (): void {
-    this.log?.trace('stream finished id=%s', this._id)
-    this.state = StreamState.Finished
-    this.stat.timeline.close = Date.now()
-    this.onStreamEnd()
   }
 
   /**
@@ -383,6 +247,23 @@ export class YamuxStream implements Stream {
       default:
         return 0
     }
+  }
+
+  /**
+   * handleData is called when the stream receives a data frame
+   */
+  async handleData (header: FrameHeader, readData: () => Promise<Uint8ArrayList>): Promise<void> {
+    this.log?.trace('stream received data id=%s', this._id)
+    this.processFlags(header.flag)
+
+    // check that our recv window is not exceeded
+    if (this.recvWindowCapacity < header.length) {
+      throw new CodeError('receive window exceeded', ERR_RECV_WINDOW_EXCEEDED, { available: this.recvWindowCapacity, recv: header.length })
+    }
+
+    const data = await readData()
+    this.recvWindowCapacity -= header.length
+    this.sourceInput.push(data)
   }
 
   /**
@@ -423,7 +304,7 @@ export class YamuxStream implements Stream {
     })
   }
 
-  private sendData (data: Uint8Array): void {
+  sendData (data: Uint8ArrayList): void {
     const flags = this.getSendFlags()
     this.sendFrame({
       type: FrameType.Data,
@@ -433,20 +314,46 @@ export class YamuxStream implements Stream {
     }, data)
   }
 
-  private sendClose (): void {
-    const flags = this.getSendFlags() | Flag.FIN
+  sendClose (): void {
     this.sendFrame({
       type: FrameType.WindowUpdate,
-      flag: flags,
+      flag: Flag.RST,
       streamID: this._id,
       length: 0
     })
   }
 
-  private sendReset (): void {
+  sendReset (): void {
     this.sendFrame({
       type: FrameType.WindowUpdate,
       flag: Flag.RST,
+      streamID: this._id,
+      length: 0
+    })
+  }
+
+  sendNewStream (): void | Promise<void> {
+    this.sendFrame({
+      type: FrameType.WindowUpdate,
+      flag: Flag.SYN,
+      streamID: this._id,
+      length: 0
+    })
+  }
+
+  sendCloseRead (): void | Promise<void> {
+    this.sendFrame({
+      type: FrameType.WindowUpdate,
+      flag: Flag.FIN,
+      streamID: this._id,
+      length: 0
+    })
+  }
+
+  sendCloseWrite (): void | Promise<void> {
+    this.sendFrame({
+      type: FrameType.WindowUpdate,
+      flag: Flag.FIN,
       streamID: this._id,
       length: 0
     })

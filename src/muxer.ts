@@ -319,18 +319,19 @@ export class YamuxMuxer implements StreamMuxer {
     }
 
     const stream = new YamuxStream({
-      id,
+      id: id.toString(),
       name,
       state,
       direction,
       sendFrame: this.sendFrame.bind(this),
-      onStreamEnd: () => {
+      onEnd: () => {
         this.closeStream(id)
         this.onStreamEnd?.(stream)
       },
       log: this.log,
       config: this.config,
-      getRTT: this.getRTT.bind(this)
+      getRTT: this.getRTT.bind(this),
+      maxDataSize: this.config.maxMessageSize,
     })
 
     return stream
@@ -519,14 +520,14 @@ export class YamuxMuxer implements StreamMuxer {
     this.onIncomingStream?.(stream)
   }
 
-  private sendFrame (header: FrameHeader, data?: Uint8Array): void {
+  private sendFrame (header: FrameHeader, data?: Uint8ArrayList): void {
     this.log?.trace('sending frame %s', stringifyHeader(header))
     if (header.type === FrameType.Data) {
       if (data === undefined) {
         throw new CodeError('invalid frame', ERR_INVALID_FRAME)
       }
       this.source.push(encodeHeader(header))
-      this.source.push(data)
+      this.source.push(data.subarray(0, header.length))
     } else {
       this.source.push(encodeHeader(header))
     }

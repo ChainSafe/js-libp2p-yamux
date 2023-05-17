@@ -8,6 +8,7 @@ import { Pushable, pushable } from 'it-pushable'
 import { defaultConfig } from '../src/config.js'
 import { ERR_STREAM_RESET } from '../src/constants.js'
 import { GoAwayCode } from '../src/frame.js'
+import type { Uint8ArrayList } from 'uint8arraylist'
 
 describe('stream', () => {
   it('test send data - small', async () => {
@@ -194,7 +195,7 @@ describe('stream', () => {
     // eslint-disable-next-line @typescript-eslint/dot-notation
     const c1SendData = c1['sendData'].bind(c1)
     // eslint-disable-next-line @typescript-eslint/dot-notation
-    ;(c1 as any)['sendData'] = (data: Uint8Array): void => {
+    ;(c1 as any)['sendData'] = (data: Uint8ArrayList): void => {
       // eslint-disable-next-line @typescript-eslint/dot-notation
       c1SendData(data)
       // eslint-disable-next-line @typescript-eslint/dot-notation
