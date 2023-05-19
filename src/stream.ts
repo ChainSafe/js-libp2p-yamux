@@ -1,5 +1,4 @@
 import type { StreamStat } from '@libp2p/interface-connection'
-import { pushable, Pushable } from 'it-pushable'
 import type { Sink, Source } from 'it-stream-types'
 import { CodeError } from '@libp2p/interfaces/errors'
 import { abortableSource } from 'abortable-iterator'
@@ -49,10 +48,6 @@ export class YamuxStream extends AbstractStream {
   /** Used to track sent FIN/RST */
   writeState: HalfStreamState
 
-  /** Input to the read side of the stream */
-  sourceInput: Pushable<Uint8ArrayList>
-  /** Read side of the stream */
-  source: AsyncGenerator<Uint8ArrayList>
   /** Write side of the stream */
   sink: Sink<Source<Uint8ArrayList | Uint8Array>, Promise<void>>
 
@@ -110,20 +105,7 @@ export class YamuxStream extends AbstractStream {
     this.sendFrame = init.sendFrame
     this.log = init.log
 
-    this.source = this.createSource()
     this.abortObserver = new AbortController()
-
-    this.sourceInput = pushable({
-      onEnd: (err?: Error) => {
-        if (err != null) {
-          this.log?.error('stream source ended id=%s', this._id, err)
-        } else {
-          this.log?.trace('stream source ended id=%s', this._id)
-        }
-
-        this.closeRead()
-      }
-    })
 
     this.sink = async (source: Source<Uint8ArrayList | Uint8Array>): Promise<void> => {
       if (this.writeState !== HalfStreamState.Open) {
@@ -154,20 +136,31 @@ export class YamuxStream extends AbstractStream {
         this.closeWrite()
       }
     }
+
+    this.sink = this.sink.bind(this)
   }
 
-  private async * createSource (): AsyncGenerator<Uint8ArrayList> {
-    try {
-      for await (const val of this.sourceInput) {
-        this.sendWindowUpdate()
-        yield val
-      }
-    } catch (err) {
-      const errCode = (err as { code: string }).code
-      if (errCode !== ERR_STREAM_ABORT) {
-        this.log?.error('stream source error id=%s', this._id, err)
-        throw err
-      }
+  closeWrite (): void {
+    if (this.state === StreamState.Finished) {
+      return
+    }
+
+    if (this.writeState !== HalfStreamState.Open) {
+      return
+    }
+
+    this.log?.trace('stream close write id=%s', this._id)
+
+    this.writeState = HalfStreamState.Closed
+
+    this.sendClose()
+
+    // close the sink
+    this.abortController.abort()
+
+    // If the both read and write are closed, finish it
+    if (this.readState !== HalfStreamState.Open) {
+      this.finish()
     }
   }
 
@@ -254,6 +247,10 @@ export class YamuxStream extends AbstractStream {
    */
   async handleData (header: FrameHeader, readData: () => Promise<Uint8ArrayList>): Promise<void> {
     this.log?.trace('stream received data id=%s', this._id)
+
+    const data = await readData()
+    this.sourcePush(data)
+
     this.processFlags(header.flag)
 
     // check that our recv window is not exceeded
@@ -261,9 +258,7 @@ export class YamuxStream extends AbstractStream {
       throw new CodeError('receive window exceeded', ERR_RECV_WINDOW_EXCEEDED, { available: this.recvWindowCapacity, recv: header.length })
     }
 
-    const data = await readData()
     this.recvWindowCapacity -= header.length
-    this.sourceInput.push(data)
   }
 
   /**
