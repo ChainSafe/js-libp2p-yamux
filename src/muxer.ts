@@ -36,6 +36,13 @@ export class Yamux implements StreamMuxerFactory {
   }
 }
 
+interface ActivePing {
+  id: number
+  promise: Promise<void>
+  resolve: () => void
+  reject: (err: Error) => void
+}
+
 export class YamuxMuxer implements StreamMuxer {
   protocol = YAMUX_PROTOCOL_ID
   source: Pushable<Uint8Array>
@@ -56,7 +63,7 @@ export class YamuxMuxer implements StreamMuxer {
   /** The next ping id to be used when pinging */
   private nextPingID: number
   /** Tracking info for the currently active ping */
-  private activePing?: { id: number, promise: Promise<void>, resolve: () => void }
+  private activePing?: ActivePing
   /** Round trip time */
   private rtt: number
 
@@ -212,22 +219,20 @@ export class YamuxMuxer implements StreamMuxer {
     // An active ping does not yet exist, handle the process here
     if (this.activePing === undefined) {
       // create active ping
-      let _resolve = (): void => {}
+      let _resolve: () => void
+      let _reject: (err: Error) => void
+      const pingPromise = new Promise<void>((resolve, reject) => {
+        _resolve = resolve
+        _reject = reject
+      })
+
       this.activePing = {
         id: this.nextPingID++,
-        // this promise awaits resolution or the close controller aborting
-        promise: new Promise<void>((resolve, reject) => {
-          const closed = (): void => {
-            reject(new CodeError('muxer closed locally', ERR_MUXER_LOCAL_CLOSED))
-          }
-          this.closeController.signal.addEventListener('abort', closed, { once: true })
-          _resolve = (): void => {
-            this.closeController.signal.removeEventListener('abort', closed)
-            resolve()
-          }
-        }),
-        resolve: _resolve
+        promise: pingPromise,
+        resolve: _resolve,
+        reject: _reject
       }
+
       // send ping
       const start = Date.now()
       this.sendPing(this.activePing.id)
@@ -269,6 +274,10 @@ export class YamuxMuxer implements StreamMuxer {
     if (this.closeController.signal.aborted) {
       // already closed
       return
+    }
+
+    if (this.activePing != null) {
+      this.activePing.reject(new CodeError('muxer closed locally', ERR_MUXER_LOCAL_CLOSED))
     }
 
     // If reason was provided, use that, otherwise use the presence of `err` to determine the reason
