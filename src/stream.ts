@@ -108,7 +108,10 @@ export class YamuxStream extends AbstractStream {
 
   /**
    * Send a message to the remote muxer informing them a new stream is being
-   * opened
+   * opened.
+   *
+   * This is a noop for Yamux because the first window update is sent when
+   * .newStream is called on the muxer which opens the stream on the remote.
    */
   async sendNewStream (): Promise<void> {
 

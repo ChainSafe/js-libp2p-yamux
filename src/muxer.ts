@@ -275,7 +275,6 @@ export class YamuxMuxer implements StreamMuxer {
     options.signal = options.signal ?? AbortSignal.timeout(CLOSE_TIMEOUT)
 
     try {
-      // If err is provided, abort all underlying streams, else close all underlying streams
       await Promise.all(
         [...this._streams.values()].map(async s => s.close(options))
       )
