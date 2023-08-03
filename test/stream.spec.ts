@@ -6,7 +6,7 @@ import { type Pushable, pushable } from 'it-pushable'
 import { defaultConfig } from '../src/config.js'
 import { ERR_RECV_WINDOW_EXCEEDED } from '../src/constants.js'
 import { GoAwayCode } from '../src/frame.js'
-import { HalfStreamState, StreamState } from '../src/stream.js'
+import { StreamState } from '../src/stream.js'
 import { sleep, testClientServer, type YamuxFixture } from './util.js'
 import type { Uint8ArrayList } from 'uint8arraylist'
 
@@ -169,13 +169,10 @@ describe('stream', () => {
     await c1.closeRead()
     await sleep(5)
 
-    expect(c1.readState).to.equal(HalfStreamState.Closed)
-    expect(c1.writeState).to.equal(HalfStreamState.Open)
-
     const s1 = server.streams[0]
     expect(s1).to.not.be.undefined()
-    expect(s1.readState).to.equal(HalfStreamState.Open)
-    expect(s1.writeState).to.equal(HalfStreamState.Open)
+    expect(s1.readStatus).to.equal('ready')
+    expect(s1.writeStatus).to.equal('ready')
   })
 
   it('test stream close write', async () => {
@@ -185,13 +182,13 @@ describe('stream', () => {
     await c1.closeWrite()
     await sleep(5)
 
-    expect(c1.readState).to.equal(HalfStreamState.Open)
-    expect(c1.writeState).to.equal(HalfStreamState.Closed)
+    expect(c1.readStatus).to.equal('ready')
+    expect(c1.writeStatus).to.equal('closed')
 
     const s1 = server.streams[0]
     expect(s1).to.not.be.undefined()
-    expect(s1.readState).to.equal(HalfStreamState.Closed)
-    expect(s1.writeState).to.equal(HalfStreamState.Open)
+    expect(s1.readStatus).to.equal('closed')
+    expect(s1.writeStatus).to.equal('ready')
   })
 
   it('test window overflow', async () => {

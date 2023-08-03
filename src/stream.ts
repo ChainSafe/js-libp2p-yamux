@@ -15,12 +15,6 @@ export enum StreamState {
   Finished,
 }
 
-export enum HalfStreamState {
-  Open,
-  Closed,
-  Reset,
-}
-
 export interface YamuxStreamInit extends AbstractStreamInit {
   name?: string
   sendFrame: (header: FrameHeader, body?: Uint8Array) => void
@@ -32,12 +26,7 @@ export interface YamuxStreamInit extends AbstractStreamInit {
 /** YamuxStream is used to represent a logical stream within a session */
 export class YamuxStream extends AbstractStream {
   name?: string
-
   state: StreamState
-  /** Used to track received FIN/RST */
-  readState: HalfStreamState
-  /** Used to track sent FIN/RST */
-  writeState: HalfStreamState
 
   private readonly config: Config
   private readonly _id: number
@@ -68,31 +57,13 @@ export class YamuxStream extends AbstractStream {
       onEnd: (err?: Error) => {
         this.state = StreamState.Finished
         init.onEnd?.(err)
-      },
-      onCloseRead: () => {
-        this.readState = HalfStreamState.Closed
-      },
-      onCloseWrite: () => {
-        this.writeState = HalfStreamState.Closed
-      },
-      onReset: () => {
-        this.readState = HalfStreamState.Reset
-        this.writeState = HalfStreamState.Reset
-      },
-      onAbort: () => {
-        this.readState = HalfStreamState.Reset
-        this.writeState = HalfStreamState.Reset
       }
     })
 
     this.config = init.config
     this._id = parseInt(init.id, 10)
     this.name = init.name
-
     this.state = init.state
-    this.readState = HalfStreamState.Open
-    this.writeState = HalfStreamState.Open
-
     this.sendWindowCapacity = INITIAL_STREAM_WINDOW
     this.recvWindow = this.config.initialStreamWindowSize
     this.recvWindowCapacity = this.recvWindow
