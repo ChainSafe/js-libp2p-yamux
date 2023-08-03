@@ -1,3 +1,18 @@
+## [5.0.0](https://github.com/ChainSafe/js-libp2p-yamux/compare/v4.0.2...v5.0.0) (2023-08-03)
+
+
+### ⚠ BREAKING CHANGES
+
+* stream close methods are now asyc, requires libp2p@0.46.x or later
+
+* chore: pr comments
+
+* chore: remove readState/writeState as they are not used any more
+
+### Features
+
+* close streams gracefully ([#57](https://github.com/ChainSafe/js-libp2p-yamux/issues/57)) ([2bd88a8](https://github.com/ChainSafe/js-libp2p-yamux/commit/2bd88a8a8ec123bd220fad450645f61aea44258a))
+
 ## [4.0.2](https://github.com/ChainSafe/js-libp2p-yamux/compare/v4.0.1...v4.0.2) (2023-05-17)
 
 
