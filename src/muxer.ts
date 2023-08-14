@@ -1,8 +1,9 @@
 import { CodeError } from '@libp2p/interface/errors'
 import { logger, type Logger } from '@libp2p/logger'
 import { abortableSource } from 'abortable-iterator'
+import batchedBytes from 'it-batched-bytes'
 import { pipe } from 'it-pipe'
-import { pushable, type Pushable } from 'it-pushable'
+import { pushableV, type PushableV } from 'it-pushable'
 import { type Config, defaultConfig, verifyConfig } from './config.js'
 import { ERR_BOTH_CLIENTS, ERR_INVALID_FRAME, ERR_MAX_OUTBOUND_STREAMS_EXCEEDED, ERR_MUXER_LOCAL_CLOSED, ERR_MUXER_REMOTE_CLOSED, ERR_NOT_MATCHING_PING, ERR_STREAM_ALREADY_EXISTS, ERR_UNREQUESTED_PING, PROTOCOL_ERRORS } from './constants.js'
 import { Decoder } from './decode.js'
@@ -13,7 +14,7 @@ import type { AbortOptions } from '@libp2p/interface'
 import type { Stream } from '@libp2p/interface/connection'
 import type { StreamMuxer, StreamMuxerFactory, StreamMuxerInit } from '@libp2p/interface/stream-muxer'
 import type { Sink, Source } from 'it-stream-types'
-import type { Uint8ArrayList } from 'uint8arraylist'
+import { Uint8ArrayList } from 'uint8arraylist'
 
 const YAMUX_PROTOCOL_ID = '/yamux/1.0.0'
 const CLOSE_TIMEOUT = 500
@@ -43,12 +44,13 @@ export interface CloseOptions extends AbortOptions {
 
 export class YamuxMuxer implements StreamMuxer {
   protocol = YAMUX_PROTOCOL_ID
-  source: Pushable<Uint8Array>
+  source: AsyncGenerator<Uint8Array>
   sink: Sink<Source<Uint8ArrayList | Uint8Array>, Promise<void>>
 
   private readonly config: Config
   private readonly log?: Logger
 
+  private readonly _source: PushableV<Uint8Array>
   /** Used to close the muxer from either the sink or source */
   private readonly closeController: AbortController
 
@@ -80,7 +82,7 @@ export class YamuxMuxer implements StreamMuxer {
 
   constructor (init: YamuxMuxerInit) {
     this.client = init.direction === 'outbound'
-    this.config = { ...defaultConfig, ...init }
+    const config = this.config = { ...defaultConfig, ...init }
     this.log = this.config.log
     verifyConfig(this.config)
 
@@ -91,7 +93,7 @@ export class YamuxMuxer implements StreamMuxer {
 
     this._streams = new Map()
 
-    this.source = pushable({
+    this._source = pushableV({
       onEnd: (): void => {
         this.log?.trace('muxer source ended')
 
@@ -100,6 +102,22 @@ export class YamuxMuxer implements StreamMuxer {
         })
       }
     })
+    this.source = pipe(
+      this._source,
+      config.minSendBytes === 0
+        ? async function * (source) {
+          for await (const bufs of source) {
+            yield new Uint8ArrayList(...bufs).subarray()
+          }
+        }
+        : async function * (source) {
+          yield * batchedBytes(source, {
+            size: config.minSendBytes,
+            serialize: (bufs, list) => { list.appendAll(bufs) }
+
+          })
+        }
+    )
 
     this.sink = async (source: Source<Uint8ArrayList | Uint8Array>): Promise<void> => {
       source = abortableSource(
@@ -322,7 +340,7 @@ export class YamuxMuxer implements StreamMuxer {
     this.closeController.abort()
 
     // stop the source
-    this.source.end()
+    this._source.end()
   }
 
   /** Create a new stream */
@@ -538,10 +556,10 @@ export class YamuxMuxer implements StreamMuxer {
       if (data === undefined) {
         throw new CodeError('invalid frame', ERR_INVALID_FRAME)
       }
-      this.source.push(encodeHeader(header))
-      this.source.push(data)
+      this._source.push(encodeHeader(header))
+      this._source.push(data)
     } else {
-      this.source.push(encodeHeader(header))
+      this._source.push(encodeHeader(header))
     }
   }
 

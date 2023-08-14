@@ -174,6 +174,7 @@
     "@libp2p/interface": "^0.1.0",
     "@libp2p/logger": "^3.0.0",
     "abortable-iterator": "^5.0.1",
+    "it-batched-bytes": "^2.0.3",
     "it-foreach": "^2.0.3",
     "it-pipe": "^3.0.1",
     "it-pushable": "^3.2.0",
