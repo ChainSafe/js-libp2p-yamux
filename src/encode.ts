@@ -1,11 +1,12 @@
+import { allocUnsafe } from 'uint8arrays/alloc'
 import { HEADER_LENGTH } from './frame.js'
 import type { FrameHeader } from './frame.js'
 
 export function encodeHeader (header: FrameHeader): Uint8Array {
-  const frame = new Uint8Array(HEADER_LENGTH)
+  const frame = allocUnsafe(HEADER_LENGTH)
 
   // always assume version 0
-  // frameView.setUint8(0, header.version)
+  frame[0] = 0
 
   frame[1] = header.type
 
