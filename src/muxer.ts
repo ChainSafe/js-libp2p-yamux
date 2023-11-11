@@ -1,7 +1,6 @@
 import { CodeError } from '@libp2p/interface/errors'
 import { logger, type Logger } from '@libp2p/logger'
-import { abortableSource } from 'abortable-iterator'
-import { pipe } from 'it-pipe'
+import { getIterator } from 'get-iterator'
 import { pushable, type Pushable } from 'it-pushable'
 import { type Config, defaultConfig, verifyConfig } from './config.js'
 import { ERR_BOTH_CLIENTS, ERR_INVALID_FRAME, ERR_MAX_OUTBOUND_STREAMS_EXCEEDED, ERR_MUXER_LOCAL_CLOSED, ERR_MUXER_REMOTE_CLOSED, ERR_NOT_MATCHING_PING, ERR_STREAM_ALREADY_EXISTS, ERR_UNREQUESTED_PING, PROTOCOL_ERRORS } from './constants.js'
@@ -102,23 +101,27 @@ export class YamuxMuxer implements StreamMuxer {
     })
 
     this.sink = async (source: Source<Uint8ArrayList | Uint8Array>): Promise<void> => {
-      source = abortableSource(
-        source,
-        this.closeController.signal,
-        { returnOnAbort: true }
-      )
+      const shutDownListener = (): void => {
+        const iterator = getIterator(source)
+
+        if (iterator.return != null) {
+          void iterator.return()
+        }
+      }
 
       let reason, error
       try {
         const decoder = new Decoder(source)
-        await pipe(
-          decoder.emitFrames.bind(decoder),
-          async source => {
-            for await (const { header, readData } of source) {
-              await this.handleFrame(header, readData)
-            }
+
+        try {
+          this.closeController.signal.addEventListener('abort', shutDownListener)
+
+          for await (const frame of decoder.emitFrames()) {
+            await this.handleFrame(frame.header, frame.readData)
           }
-        )
+        } finally {
+          this.closeController.signal.removeEventListener('abort', shutDownListener)
+        }
 
         reason = GoAwayCode.NormalTermination
       } catch (err: unknown) {
