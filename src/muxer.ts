@@ -105,7 +105,13 @@ export class YamuxMuxer implements StreamMuxer {
         const iterator = getIterator(source)
 
         if (iterator.return != null) {
-          void iterator.return()
+          const res = iterator.return()
+
+          if (isPromise(res)) {
+            res.catch(err => {
+              this.log?.('could not cause sink source to return', err)
+            })
+          }
         }
       }
 
@@ -572,4 +578,8 @@ export class YamuxMuxer implements StreamMuxer {
       length: reason
     })
   }
+}
+
+function isPromise <T = unknown> (thing: any): thing is Promise<T> {
+  return thing != null && typeof thing.then === 'function'
 }
