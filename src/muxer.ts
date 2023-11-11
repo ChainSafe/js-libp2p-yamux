@@ -1,4 +1,5 @@
 import { CodeError } from '@libp2p/interface/errors'
+import { setMaxListeners } from '@libp2p/interface/events'
 import { logger, type Logger } from '@libp2p/logger'
 import { abortableSource } from 'abortable-iterator'
 import { pipe } from 'it-pipe'
@@ -85,6 +86,7 @@ export class YamuxMuxer implements StreamMuxer {
     verifyConfig(this.config)
 
     this.closeController = new AbortController()
+    setMaxListeners(Infinity, this.closeController.signal)
 
     this.onIncomingStream = init.onIncomingStream
     this.onStreamEnd = init.onStreamEnd
@@ -272,7 +274,15 @@ export class YamuxMuxer implements StreamMuxer {
 
     this.log?.trace('muxer close reason=%s', reason)
 
-    options.signal = options.signal ?? AbortSignal.timeout(CLOSE_TIMEOUT)
+    if (options.signal == null) {
+      const signal = AbortSignal.timeout(CLOSE_TIMEOUT)
+      setMaxListeners(Infinity, signal)
+
+      options = {
+        ...options,
+        signal
+      }
+    }
 
     try {
       await Promise.all(
