@@ -7,7 +7,7 @@ import { type Config, defaultConfig, verifyConfig } from './config.js'
 import { ERR_BOTH_CLIENTS, ERR_INVALID_FRAME, ERR_MAX_OUTBOUND_STREAMS_EXCEEDED, ERR_MUXER_LOCAL_CLOSED, ERR_MUXER_REMOTE_CLOSED, ERR_NOT_MATCHING_PING, ERR_STREAM_ALREADY_EXISTS, ERR_UNREQUESTED_PING, PROTOCOL_ERRORS } from './constants.js'
 import { Decoder } from './decode.js'
 import { encodeHeader } from './encode.js'
-import { Flag, type FrameHeader, FrameType, GoAwayCode, stringifyHeader } from './frame.js'
+import { Flag, type FrameHeader, FrameType, GoAwayCode } from './frame.js'
 import { StreamState, YamuxStream } from './stream.js'
 import type { AbortOptions } from '@libp2p/interface'
 import type { Stream } from '@libp2p/interface/connection'
@@ -389,7 +389,7 @@ export class YamuxMuxer implements StreamMuxer {
       type,
       length
     } = header
-    this.log?.trace('received frame %s', stringifyHeader(header))
+    this.log?.trace('received frame %o', header)
 
     if (streamID === 0) {
       switch (type) {
@@ -533,7 +533,7 @@ export class YamuxMuxer implements StreamMuxer {
   }
 
   private sendFrame (header: FrameHeader, data?: Uint8Array): void {
-    this.log?.trace('sending frame %s', stringifyHeader(header))
+    this.log?.trace('sending frame %o', header)
     if (header.type === FrameType.Data) {
       if (data === undefined) {
         throw new CodeError('invalid frame', ERR_INVALID_FRAME)
