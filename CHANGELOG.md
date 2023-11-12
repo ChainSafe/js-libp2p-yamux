@@ -1,3 +1,10 @@
+## [5.0.2](https://github.com/ChainSafe/js-libp2p-yamux/compare/v5.0.1...v5.0.2) (2023-11-12)
+
+
+### Bug Fixes
+
+* remove abortable iterator from muxer ([#63](https://github.com/ChainSafe/js-libp2p-yamux/issues/63)) ([064bf1c](https://github.com/ChainSafe/js-libp2p-yamux/commit/064bf1cc56bc4bdaa0f950a1f434f25c66e036a9))
+
 ## [5.0.1](https://github.com/ChainSafe/js-libp2p-yamux/compare/v5.0.0...v5.0.1) (2023-11-12)
 
 
