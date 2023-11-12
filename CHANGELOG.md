@@ -1,3 +1,11 @@
+## [5.0.1](https://github.com/ChainSafe/js-libp2p-yamux/compare/v5.0.0...v5.0.1) (2023-11-12)
+
+
+### Bug Fixes
+
+* do not stringify headers for logging ([#61](https://github.com/ChainSafe/js-libp2p-yamux/issues/61)) ([59e73d8](https://github.com/ChainSafe/js-libp2p-yamux/commit/59e73d8bd5db59ec2b606a37f19b30d801dcf80a))
+* silence max listeners exceeded warning ([#62](https://github.com/ChainSafe/js-libp2p-yamux/issues/62)) ([cce9446](https://github.com/ChainSafe/js-libp2p-yamux/commit/cce94469cbdac581baf0375b88aa6d38b0778a88))
+
 ## [5.0.0](https://github.com/ChainSafe/js-libp2p-yamux/compare/v4.0.2...v5.0.0) (2023-08-03)
 
 
