@@ -274,7 +274,7 @@ export class YamuxStream extends AbstractStream {
     // then we (up to) double the recvWindow
     const now = Date.now()
     const rtt = this.getRTT()
-    if (flags === 0 && rtt > 0 && now - this.epochStart < rtt * 4) {
+    if (flags === 0 && rtt > -1 && now - this.epochStart < rtt * 4) {
       // we've already validated that maxStreamWindowSize can't be more than MAX_UINT32
       this.recvWindow = Math.min(this.recvWindow * 2, this.config.maxStreamWindowSize)
     }
