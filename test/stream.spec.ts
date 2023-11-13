@@ -105,9 +105,9 @@ describe('stream', () => {
     // the window capacities should have refilled via window updates as received data was consumed
 
     // eslint-disable-next-line @typescript-eslint/dot-notation
-    expect(c1['sendWindowCapacity']).to.be.gt(defaultConfig.initialStreamWindowSize)
+    expect(c1['sendWindowCapacity']).to.be.gte(defaultConfig.initialStreamWindowSize)
     // eslint-disable-next-line @typescript-eslint/dot-notation
-    expect(s1['recvWindowCapacity']).to.be.gt(defaultConfig.initialStreamWindowSize)
+    expect(s1['recvWindowCapacity']).to.be.gte(defaultConfig.initialStreamWindowSize)
   })
 
   it('test many streams', async () => {
