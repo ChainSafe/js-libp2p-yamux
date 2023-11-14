@@ -1,3 +1,10 @@
+## [5.0.3](https://github.com/ChainSafe/js-libp2p-yamux/compare/v5.0.2...v5.0.3) (2023-11-14)
+
+
+### Bug Fixes
+
+* establish RTT at start of connection ([#64](https://github.com/ChainSafe/js-libp2p-yamux/issues/64)) ([672523b](https://github.com/ChainSafe/js-libp2p-yamux/commit/672523bcf0c4c2ccfaf27b6b06e07f28294f0077))
+
 ## [5.0.2](https://github.com/ChainSafe/js-libp2p-yamux/compare/v5.0.1...v5.0.2) (2023-11-12)
 
 
