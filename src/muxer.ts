@@ -162,13 +162,16 @@ export class YamuxMuxer implements StreamMuxer {
     this.nextStreamID = this.client ? 1 : 2
 
     this.nextPingID = 0
-    this.rtt = 0
+    this.rtt = -1
 
     this.log?.trace('muxer created')
 
     if (this.config.enableKeepAlive) {
       this.keepAliveLoop().catch(e => this.log?.error('keepalive error: %s', e))
     }
+
+    // send an initial ping to establish RTT
+    this.ping().catch(e => this.log?.error('ping error: %s', e))
   }
 
   get streams (): YamuxStream[] {
