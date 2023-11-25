@@ -1,5 +1,5 @@
 import { CodeError } from '@libp2p/interface/errors'
-import { AbstractStream, type AbstractStreamInit } from '@libp2p/interface/stream-muxer/stream'
+import { AbstractStream, type AbstractStreamInit } from '@libp2p/utils/abstract-stream'
 import each from 'it-foreach'
 import { ERR_RECV_WINDOW_EXCEEDED, ERR_STREAM_ABORT, INITIAL_STREAM_WINDOW } from './constants.js'
 import { Flag, type FrameHeader, FrameType, HEADER_LENGTH } from './frame.js'
@@ -17,7 +17,7 @@ export enum StreamState {
 
 export interface YamuxStreamInit extends AbstractStreamInit {
   name?: string
-  sendFrame: (header: FrameHeader, body?: Uint8Array) => void
+  sendFrame: (header: FrameHeader, body?: Uint8ArrayList) => void
   getRTT: () => number
   config: Config
   state: StreamState
@@ -49,7 +49,7 @@ export class YamuxStream extends AbstractStream {
   private epochStart: number
   private readonly getRTT: () => number
 
-  private readonly sendFrame: (header: FrameHeader, body?: Uint8Array) => void
+  private readonly sendFrame: (header: FrameHeader, body?: Uint8ArrayList) => void
 
   constructor (init: YamuxStreamInit) {
     super({
@@ -115,7 +115,7 @@ export class YamuxStream extends AbstractStream {
         flag: flags,
         streamID: this._id,
         length: toSend
-      }, buf.subarray(0, toSend))
+      }, buf.sublist(0, toSend))
 
       this.sendWindowCapacity -= toSend
 

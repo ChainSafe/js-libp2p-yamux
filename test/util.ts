@@ -1,6 +1,7 @@
 import { logger } from '@libp2p/logger'
 import { duplexPair } from 'it-pair/duplex'
 import { pipe } from 'it-pipe'
+import { type Uint8ArrayList } from 'uint8arraylist'
 import { Yamux, YamuxMuxer, type YamuxMuxerInit } from '../src/muxer.js'
 import type { Config } from '../src/config.js'
 import type { Source, Transform } from 'it-stream-types'
@@ -79,14 +80,14 @@ export function testClientServer (conf: YamuxMuxerInit = {}): {
   client: YamuxFixture
   server: YamuxFixture
 } {
-  const pair = duplexPair<Uint8Array>()
+  const pair = duplexPair<Uint8Array | Uint8ArrayList>()
   const client = testYamuxMuxer('libp2p:yamux:client', true, conf)
   const server = testYamuxMuxer('libp2p:yamux:server', false, conf)
 
-  const clientReadTransform = pauseableTransform<Uint8Array>()
-  const clientWriteTransform = pauseableTransform<Uint8Array>()
-  const serverReadTransform = pauseableTransform<Uint8Array>()
-  const serverWriteTransform = pauseableTransform<Uint8Array>()
+  const clientReadTransform = pauseableTransform<Uint8Array | Uint8ArrayList>()
+  const clientWriteTransform = pauseableTransform<Uint8Array | Uint8ArrayList>()
+  const serverReadTransform = pauseableTransform<Uint8Array | Uint8ArrayList>()
+  const serverWriteTransform = pauseableTransform<Uint8Array | Uint8ArrayList>()
 
   void pipe(pair[0], clientReadTransform.transform, client, clientWriteTransform.transform, pair[0])
   void pipe(pair[1], serverReadTransform.transform, server, serverWriteTransform.transform, pair[1])
