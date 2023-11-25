@@ -1,16 +1,8 @@
 import { CodeError } from '@libp2p/interface/errors'
-import { logger, type Logger } from '@libp2p/logger'
 import { ERR_INVALID_CONFIG, INITIAL_STREAM_WINDOW, MAX_STREAM_WINDOW } from './constants.js'
 
 // TOOD use config items or delete them
 export interface Config {
-  /**
-   * Used to control the log destination
-   *
-   * It can be disabled by explicitly setting to `undefined`
-   */
-  log?: Logger
-
   /**
    * Used to do periodic keep alive messages using a ping.
    */
@@ -55,7 +47,6 @@ export interface Config {
 }
 
 export const defaultConfig: Config = {
-  log: logger('libp2p:yamux'),
   enableKeepAlive: true,
   keepAliveInterval: 30_000,
   maxInboundStreams: 1_000,
