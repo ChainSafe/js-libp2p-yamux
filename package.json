@@ -172,7 +172,6 @@
   },
   "dependencies": {
     "@libp2p/interface": "next",
-    "@libp2p/logger": "next",
     "@libp2p/utils": "next",
     "get-iterator": "^2.0.1",
     "it-foreach": "^2.0.3",
@@ -183,6 +182,7 @@
   "devDependencies": {
     "@dapplion/benchmark": "^0.2.4",
     "@libp2p/interface-compliance-tests": "next",
+    "@libp2p/logger": "next",
     "@libp2p/mplex": "next",
     "aegir": "^40.0.1",
     "it-drain": "^3.0.2",

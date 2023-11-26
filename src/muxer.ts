@@ -1,6 +1,5 @@
 import { CodeError } from '@libp2p/interface/errors'
 import { setMaxListeners } from '@libp2p/interface/events'
-import { logger, type Logger } from '@libp2p/logger'
 import { getIterator } from 'get-iterator'
 import { pushable, type Pushable } from 'it-pushable'
 import { Uint8ArrayList } from 'uint8arraylist'
@@ -10,7 +9,8 @@ import { Decoder } from './decode.js'
 import { encodeHeader } from './encode.js'
 import { Flag, type FrameHeader, FrameType, GoAwayCode } from './frame.js'
 import { StreamState, YamuxStream } from './stream.js'
-import type { AbortOptions } from '@libp2p/interface'
+import type { YamuxComponents } from './index.js'
+import type { AbortOptions, ComponentLogger, Logger } from '@libp2p/interface'
 import type { Stream } from '@libp2p/interface/connection'
 import type { StreamMuxer, StreamMuxerFactory, StreamMuxerInit } from '@libp2p/interface/stream-muxer'
 import type { Sink, Source } from 'it-stream-types'
@@ -24,13 +24,15 @@ export interface YamuxMuxerInit extends StreamMuxerInit, Partial<Config> {
 export class Yamux implements StreamMuxerFactory {
   protocol = YAMUX_PROTOCOL_ID
   private readonly _init: YamuxMuxerInit
+  private readonly components: YamuxComponents
 
-  constructor (init: YamuxMuxerInit = {}) {
+  constructor (components: YamuxComponents, init: YamuxMuxerInit = {}) {
     this._init = init
+    this.components = components
   }
 
   createStreamMuxer (init?: YamuxMuxerInit): YamuxMuxer {
-    return new YamuxMuxer({
+    return new YamuxMuxer(this.components, {
       ...this._init,
       ...init
     })
@@ -47,7 +49,8 @@ export class YamuxMuxer implements StreamMuxer {
   sink: Sink<Source<Uint8ArrayList | Uint8Array>, Promise<void>>
 
   private readonly config: Config
-  private readonly log?: Logger
+  private readonly log: Logger
+  private readonly logger: ComponentLogger
 
   /** Used to close the muxer from either the sink or source */
   private readonly closeController: AbortController
@@ -78,10 +81,11 @@ export class YamuxMuxer implements StreamMuxer {
   private readonly onIncomingStream?: (stream: Stream) => void
   private readonly onStreamEnd?: (stream: Stream) => void
 
-  constructor (init: YamuxMuxerInit) {
+  constructor (components: YamuxComponents, init: YamuxMuxerInit) {
     this.client = init.direction === 'outbound'
     this.config = { ...defaultConfig, ...init }
-    this.log = this.config.log
+    this.log = components.logger.forComponent('libp2p:yamux')
+    this.logger = components.logger
     verifyConfig(this.config)
 
     this.closeController = new AbortController()
@@ -164,14 +168,18 @@ export class YamuxMuxer implements StreamMuxer {
     this.nextPingID = 0
     this.rtt = -1
 
-    this.log?.trace('muxer created')
+    this.log.trace('muxer created')
 
     if (this.config.enableKeepAlive) {
-      this.keepAliveLoop().catch(e => this.log?.error('keepalive error: %s', e))
+      this.keepAliveLoop().catch(e => {
+        this.log.error('keepalive error: %s', e)
+      })
     }
 
     // send an initial ping to establish RTT
-    this.ping().catch(e => this.log?.error('ping error: %s', e))
+    this.ping().catch(e => {
+      this.log.error('ping error: %s', e)
+    })
   }
 
   get streams (): YamuxStream[] {
@@ -363,7 +371,7 @@ export class YamuxMuxer implements StreamMuxer {
         this.closeStream(id)
         this.onStreamEnd?.(stream)
       },
-      log: logger(`libp2p:yamux:${direction}:${id}`),
+      log: this.logger.forComponent(`libp2p:yamux:${direction}:${id}`),
       config: this.config,
       getRTT: this.getRTT.bind(this)
     })
@@ -396,7 +404,9 @@ export class YamuxMuxer implements StreamMuxer {
             timeoutId = setTimeout(resolve, this.config.keepAliveInterval)
           })
         ])
-        this.ping().catch(e => this.log?.error('ping error: %s', e))
+        this.ping().catch(e => {
+          this.log.error('ping error: %s', e)
+        })
       } catch (e) {
         // closed
         clearInterval(timeoutId)

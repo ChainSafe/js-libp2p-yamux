@@ -1,4 +1,4 @@
-import { logger } from '@libp2p/logger'
+import { prefixLogger } from '@libp2p/logger'
 import { duplexPair } from 'it-pair/duplex'
 import { pipe } from 'it-pipe'
 import { type Uint8ArrayList } from 'uint8arraylist'
@@ -29,16 +29,15 @@ export const testConf: Partial<Config> = {
 export class TestYamux extends Yamux {
   createStreamMuxer (init?: YamuxMuxerInit): YamuxMuxer {
     const client = isClient()
-    return super.createStreamMuxer({ ...testConf, ...init, direction: client ? 'outbound' : 'inbound', log: logger(`libp2p:yamux${client ? 1 : 2}`) })
+    return super.createStreamMuxer({ ...testConf, ...init, direction: client ? 'outbound' : 'inbound' })
   }
 }
 
 export function testYamuxMuxer (name: string, client: boolean, conf: YamuxMuxerInit = {}): YamuxMuxer {
-  return new YamuxMuxer({
+  return new YamuxMuxer({ logger: prefixLogger(name) }, {
     ...testConf,
     ...conf,
-    direction: client ? 'outbound' : 'inbound',
-    log: logger(name)
+    direction: client ? 'outbound' : 'inbound'
   })
 }
 
