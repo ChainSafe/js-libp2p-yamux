@@ -1,3 +1,14 @@
+## [6.0.0](https://github.com/ChainSafe/js-libp2p-yamux/compare/v5.0.4...v6.0.0) (2023-11-29)
+
+
+### ⚠ BREAKING CHANGES
+
+* yield uint8arraylists (#65)
+
+### Features
+
+* yield uint8arraylists ([#65](https://github.com/ChainSafe/js-libp2p-yamux/issues/65)) ([9ffc44d](https://github.com/ChainSafe/js-libp2p-yamux/commit/9ffc44dd2d924562da02a616f601b21bf9c13858))
+
 ## [5.0.4](https://github.com/ChainSafe/js-libp2p-yamux/compare/v5.0.3...v5.0.4) (2023-11-29)
 
 
