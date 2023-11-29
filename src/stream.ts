@@ -17,8 +17,8 @@ export enum StreamState {
 
 export interface YamuxStreamInit extends AbstractStreamInit {
   name?: string
-  sendFrame: (header: FrameHeader, body?: Uint8Array) => void
-  getRTT: () => number
+  sendFrame(header: FrameHeader, body?: Uint8Array): void
+  getRTT(): number
   config: Config
   state: StreamState
 }

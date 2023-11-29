@@ -60,7 +60,7 @@ export class YamuxMuxer implements StreamMuxer {
   /** The next ping id to be used when pinging */
   private nextPingID: number
   /** Tracking info for the currently active ping */
-  private activePing?: { id: number, promise: Promise<void>, resolve: () => void }
+  private activePing?: { id: number, promise: Promise<void>, resolve(): void }
   /** Round trip time */
   private rtt: number
 

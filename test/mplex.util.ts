@@ -16,7 +16,7 @@ export function testYamuxMuxer (name: string, client: boolean, conf: StreamMuxer
 /**
  * Create a transform that can be paused and unpaused
  */
-export function pauseableTransform <A> (): { transform: Transform<Source<A>, AsyncGenerator<A>>, pause: () => void, unpause: () => void } {
+export function pauseableTransform <A> (): { transform: Transform<Source<A>, AsyncGenerator<A>>, pause(): void, unpause(): void } {
   let resolvePausePromise: ((value: unknown) => void) | undefined
   let pausePromise: Promise<unknown> | undefined
   const unpause = (): void => {
@@ -42,16 +42,16 @@ export function pauseableTransform <A> (): { transform: Transform<Source<A>, Asy
 
 export function testClientServer (conf: StreamMuxerInit = {}): {
   client: StreamMuxer & {
-    pauseRead: () => void
-    unpauseRead: () => void
-    pauseWrite: () => void
-    unpauseWrite: () => void
+    pauseRead(): void
+    unpauseRead(): void
+    pauseWrite(): void
+    unpauseWrite(): void
   }
   server: StreamMuxer & {
-    pauseRead: () => void
-    unpauseRead: () => void
-    pauseWrite: () => void
-    unpauseWrite: () => void
+    pauseRead(): void
+    unpauseRead(): void
+    pauseWrite(): void
+    unpauseWrite(): void
   }
 } {
   const pair = duplexPair<Uint8Array>()
