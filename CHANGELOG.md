@@ -1,3 +1,10 @@
+## [5.0.4](https://github.com/ChainSafe/js-libp2p-yamux/compare/v5.0.3...v5.0.4) (2023-11-29)
+
+
+### Dependencies
+
+* **dev:** update aegir to 41.x.x ([#67](https://github.com/ChainSafe/js-libp2p-yamux/issues/67)) ([f2492e9](https://github.com/ChainSafe/js-libp2p-yamux/commit/f2492e9ea8a8387d9f6aea36321afd690521e538))
+
 ## [5.0.3](https://github.com/ChainSafe/js-libp2p-yamux/compare/v5.0.2...v5.0.3) (2023-11-14)
 
 
