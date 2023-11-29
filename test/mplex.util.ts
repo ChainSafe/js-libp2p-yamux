@@ -1,10 +1,14 @@
+import { defaultLogger } from '@libp2p/logger'
 import { mplex } from '@libp2p/mplex'
 import { duplexPair } from 'it-pair/duplex'
 import { pipe } from 'it-pipe'
+import { type Uint8ArrayList } from 'uint8arraylist'
 import type { StreamMuxer, StreamMuxerInit } from '@libp2p/interface/stream-muxer'
 import type { Source, Transform } from 'it-stream-types'
 
-const factory = mplex()()
+const factory = mplex()({
+  logger: defaultLogger()
+})
 
 export function testYamuxMuxer (name: string, client: boolean, conf: StreamMuxerInit = {}): StreamMuxer {
   return factory.createStreamMuxer({
@@ -54,14 +58,14 @@ export function testClientServer (conf: StreamMuxerInit = {}): {
     unpauseWrite(): void
   }
 } {
-  const pair = duplexPair<Uint8Array>()
+  const pair = duplexPair<Uint8Array | Uint8ArrayList>()
   const client = testYamuxMuxer('libp2p:mplex:client', true, conf)
   const server = testYamuxMuxer('libp2p:mplex:server', false, conf)
 
-  const clientReadTransform = pauseableTransform<Uint8Array>()
-  const clientWriteTransform = pauseableTransform<Uint8Array>()
-  const serverReadTransform = pauseableTransform<Uint8Array>()
-  const serverWriteTransform = pauseableTransform<Uint8Array>()
+  const clientReadTransform = pauseableTransform<Uint8Array | Uint8ArrayList>()
+  const clientWriteTransform = pauseableTransform<Uint8Array | Uint8ArrayList>()
+  const serverReadTransform = pauseableTransform<Uint8Array | Uint8ArrayList>()
+  const serverWriteTransform = pauseableTransform<Uint8Array | Uint8ArrayList>()
 
   void pipe(pair[0], clientReadTransform.transform, client, clientWriteTransform.transform, pair[0])
   void pipe(pair[1], serverReadTransform.transform, server, serverWriteTransform.transform, pair[1])

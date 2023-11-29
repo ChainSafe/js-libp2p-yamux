@@ -1,19 +1,16 @@
-import { CodeError } from '@libp2p/interface/errors'
-import { setMaxListeners } from '@libp2p/interface/events'
-import { logger, type Logger } from '@libp2p/logger'
+import { CodeError, setMaxListeners } from '@libp2p/interface'
 import { getIterator } from 'get-iterator'
 import { pushable, type Pushable } from 'it-pushable'
+import { Uint8ArrayList } from 'uint8arraylist'
 import { type Config, defaultConfig, verifyConfig } from './config.js'
 import { ERR_BOTH_CLIENTS, ERR_INVALID_FRAME, ERR_MAX_OUTBOUND_STREAMS_EXCEEDED, ERR_MUXER_LOCAL_CLOSED, ERR_MUXER_REMOTE_CLOSED, ERR_NOT_MATCHING_PING, ERR_STREAM_ALREADY_EXISTS, ERR_UNREQUESTED_PING, PROTOCOL_ERRORS } from './constants.js'
 import { Decoder } from './decode.js'
 import { encodeHeader } from './encode.js'
 import { Flag, type FrameHeader, FrameType, GoAwayCode } from './frame.js'
 import { StreamState, YamuxStream } from './stream.js'
-import type { AbortOptions } from '@libp2p/interface'
-import type { Stream } from '@libp2p/interface/connection'
-import type { StreamMuxer, StreamMuxerFactory, StreamMuxerInit } from '@libp2p/interface/stream-muxer'
+import type { YamuxMuxerComponents } from './index.js'
+import type { AbortOptions, ComponentLogger, Logger, Stream, StreamMuxer, StreamMuxerFactory, StreamMuxerInit } from '@libp2p/interface'
 import type { Sink, Source } from 'it-stream-types'
-import type { Uint8ArrayList } from 'uint8arraylist'
 
 const YAMUX_PROTOCOL_ID = '/yamux/1.0.0'
 const CLOSE_TIMEOUT = 500
@@ -23,14 +20,16 @@ export interface YamuxMuxerInit extends StreamMuxerInit, Partial<Config> {
 
 export class Yamux implements StreamMuxerFactory {
   protocol = YAMUX_PROTOCOL_ID
+  private readonly _components: YamuxMuxerComponents
   private readonly _init: YamuxMuxerInit
 
-  constructor (init: YamuxMuxerInit = {}) {
+  constructor (components: YamuxMuxerComponents, init: YamuxMuxerInit = {}) {
+    this._components = components
     this._init = init
   }
 
   createStreamMuxer (init?: YamuxMuxerInit): YamuxMuxer {
-    return new YamuxMuxer({
+    return new YamuxMuxer(this._components, {
       ...this._init,
       ...init
     })
@@ -43,11 +42,12 @@ export interface CloseOptions extends AbortOptions {
 
 export class YamuxMuxer implements StreamMuxer {
   protocol = YAMUX_PROTOCOL_ID
-  source: Pushable<Uint8Array>
+  source: Pushable<Uint8ArrayList | Uint8Array>
   sink: Sink<Source<Uint8ArrayList | Uint8Array>, Promise<void>>
 
   private readonly config: Config
   private readonly log?: Logger
+  private readonly logger: ComponentLogger
 
   /** Used to close the muxer from either the sink or source */
   private readonly closeController: AbortController
@@ -78,10 +78,11 @@ export class YamuxMuxer implements StreamMuxer {
   private readonly onIncomingStream?: (stream: Stream) => void
   private readonly onStreamEnd?: (stream: Stream) => void
 
-  constructor (init: YamuxMuxerInit) {
+  constructor (components: YamuxMuxerComponents, init: YamuxMuxerInit) {
     this.client = init.direction === 'outbound'
     this.config = { ...defaultConfig, ...init }
-    this.log = this.config.log
+    this.logger = components.logger
+    this.log = this.logger.forComponent('libp2p:yamux')
     verifyConfig(this.config)
 
     this.closeController = new AbortController()
@@ -363,7 +364,7 @@ export class YamuxMuxer implements StreamMuxer {
         this.closeStream(id)
         this.onStreamEnd?.(stream)
       },
-      log: logger(`libp2p:yamux:${direction}:${id}`),
+      log: this.logger.forComponent(`libp2p:yamux:${direction}:${id}`),
       config: this.config,
       getRTT: this.getRTT.bind(this)
     })
@@ -554,14 +555,15 @@ export class YamuxMuxer implements StreamMuxer {
     this.onIncomingStream?.(stream)
   }
 
-  private sendFrame (header: FrameHeader, data?: Uint8Array): void {
+  private sendFrame (header: FrameHeader, data?: Uint8ArrayList): void {
     this.log?.trace('sending frame %o', header)
     if (header.type === FrameType.Data) {
       if (data === undefined) {
         throw new CodeError('invalid frame', ERR_INVALID_FRAME)
       }
-      this.source.push(encodeHeader(header))
-      this.source.push(data)
+      this.source.push(
+        new Uint8ArrayList(encodeHeader(header), data)
+      )
     } else {
       this.source.push(encodeHeader(header))
     }

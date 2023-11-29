@@ -3,6 +3,7 @@
 import { expect } from 'aegir/chai'
 import { duplexPair } from 'it-pair/duplex'
 import { pipe } from 'it-pipe'
+import { type Uint8ArrayList } from 'uint8arraylist'
 import { ERR_MUXER_LOCAL_CLOSED } from '../src/constants.js'
 import { sleep, testClientServer, testYamuxMuxer, type YamuxFixture } from './util.js'
 
@@ -29,7 +30,7 @@ describe('muxer', () => {
   })
 
   it('test client<->client', async () => {
-    const pair = duplexPair<Uint8Array>()
+    const pair = duplexPair<Uint8Array | Uint8ArrayList>()
     const client1 = testYamuxMuxer('libp2p:yamux:1', true)
     const client2 = testYamuxMuxer('libp2p:yamux:2', true)
     void pipe(pair[0], client1, pair[0])
@@ -44,7 +45,7 @@ describe('muxer', () => {
   })
 
   it('test server<->server', async () => {
-    const pair = duplexPair<Uint8Array>()
+    const pair = duplexPair<Uint8Array | Uint8ArrayList>()
     const client1 = testYamuxMuxer('libp2p:yamux:1', false)
     const client2 = testYamuxMuxer('libp2p:yamux:2', false)
     void pipe(pair[0], client1, pair[0])
