@@ -1,3 +1,10 @@
+## [6.0.1](https://github.com/ChainSafe/js-libp2p-yamux/compare/v6.0.0...v6.0.1) (2023-11-30)
+
+
+### Bug Fixes
+
+* update interface import path ([#68](https://github.com/ChainSafe/js-libp2p-yamux/issues/68)) ([bfad61c](https://github.com/ChainSafe/js-libp2p-yamux/commit/bfad61cf1e7293c5f7e2bb5db35bb62a17b34d48))
+
 ## [6.0.0](https://github.com/ChainSafe/js-libp2p-yamux/compare/v5.0.4...v6.0.0) (2023-11-29)
 
 
