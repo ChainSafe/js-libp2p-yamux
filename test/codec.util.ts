@@ -1,4 +1,4 @@
-import { CodeError } from '@libp2p/interface/errors'
+import { CodeError } from '@libp2p/interface'
 import { ERR_DECODE_INVALID_VERSION } from '../src/constants.js'
 import { type FrameHeader, HEADER_LENGTH, YAMUX_VERSION } from '../src/frame.js'
 

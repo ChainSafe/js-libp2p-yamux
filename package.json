@@ -11,6 +11,10 @@
   "bugs": {
     "url": "https://github.com/ChainSafe/js-libp2p-yamux/issues"
   },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "keywords": [
     "IPFS",
     "libp2p",
