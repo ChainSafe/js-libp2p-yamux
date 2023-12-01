@@ -47,7 +47,7 @@ export class YamuxMuxer implements StreamMuxer {
 
   private readonly config: Config
   private readonly log?: Logger
-  private readonly logger: ComponentLogger
+  private readonly logger?: ComponentLogger
 
   /** Used to close the muxer from either the sink or source */
   private readonly closeController: AbortController
@@ -82,7 +82,7 @@ export class YamuxMuxer implements StreamMuxer {
     this.client = init.direction === 'outbound'
     this.config = { ...defaultConfig, ...init }
     this.logger = components.logger
-    this.log = this.logger.forComponent('libp2p:yamux')
+    this.log = this.logger?.forComponent('libp2p:yamux')
     verifyConfig(this.config)
 
     this.closeController = new AbortController()
@@ -364,7 +364,7 @@ export class YamuxMuxer implements StreamMuxer {
         this.closeStream(id)
         this.onStreamEnd?.(stream)
       },
-      log: this.logger.forComponent(`libp2p:yamux:${direction}:${id}`),
+      log: this.logger?.forComponent(`libp2p:yamux:${direction}:${id}`),
       config: this.config,
       getRTT: this.getRTT.bind(this)
     })

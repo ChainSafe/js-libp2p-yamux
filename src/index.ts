@@ -85,9 +85,9 @@ export { GoAwayCode, type FrameHeader, type FrameType } from './frame.js'
 export type { YamuxMuxerInit }
 
 export interface YamuxMuxerComponents {
-  logger: ComponentLogger
+  logger?: ComponentLogger
 }
 
-export function yamux (init: YamuxMuxerInit = {}): (components: YamuxMuxerComponents) => StreamMuxerFactory {
-  return (components) => new Yamux(components, init)
+export function yamux (init: YamuxMuxerInit = {}): (components?: YamuxMuxerComponents) => StreamMuxerFactory {
+  return (components) => new Yamux(components ?? {}, init)
 }

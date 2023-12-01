@@ -1,4 +1,4 @@
-import { CodeError } from '@libp2p/interface'
+import { CodeError, type Logger } from '@libp2p/interface'
 import { AbstractStream, type AbstractStreamInit } from '@libp2p/utils/abstract-stream'
 import each from 'it-foreach'
 import { ERR_RECV_WINDOW_EXCEEDED, ERR_STREAM_ABORT, INITIAL_STREAM_WINDOW } from './constants.js'
@@ -15,12 +15,31 @@ export enum StreamState {
   Finished,
 }
 
-export interface YamuxStreamInit extends AbstractStreamInit {
+export interface YamuxStreamInit extends Omit<AbstractStreamInit, 'log'> {
   name?: string
   sendFrame(header: FrameHeader, body?: Uint8ArrayList): void
   getRTT(): number
   config: Config
   state: StreamState
+  log?: Logger
+}
+
+// https://github.com/libp2p/js-libp2p/issues/2276
+// https://github.com/libp2p/js-libp2p/blob/bca8d6e689b47d85dda74082ed72e671139391de/packages/logger/src/index.ts#L86
+function createDisabledLogger(namespace: string): Logger {
+  const logger = (): void => {}
+  logger.enabled = false
+  logger.color = ''
+  logger.diff = 0
+  logger.log = (): void => {}
+  logger.namespace = namespace
+  logger.destroy = () => true
+  logger.extend = () => logger
+  logger.debug = logger
+  logger.error = logger
+  logger.trace = logger
+
+  return logger
 }
 
 /** YamuxStream is used to represent a logical stream within a session */
@@ -54,6 +73,7 @@ export class YamuxStream extends AbstractStream {
   constructor (init: YamuxStreamInit) {
     super({
       ...init,
+      log: init.log ?? createDisabledLogger('yamux'),
       onEnd: (err?: Error) => {
         this.state = StreamState.Finished
         init.onEnd?.(err)
