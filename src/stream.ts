@@ -98,12 +98,14 @@ export class YamuxStream extends AbstractStream {
     while (buf.byteLength !== 0) {
       // wait for the send window to refill
       if (this.sendWindowCapacity === 0) {
+        this.log?.trace('wait for send window capacity', this.status)
         await this.waitForSendWindowCapacity(options)
-      }
 
-      // check we didn't close while waiting for send window capacity
-      if (this.status !== 'open') {
-        return
+        // check we didn't close while waiting for send window capacity
+        if (this.status === 'closed' || this.status === 'aborted' || this.status === 'reset') {
+          this.log?.trace('%s while waiting for send window capacity', this.status)
+          return
+        }
       }
 
       // send as much as we can
