@@ -1,3 +1,11 @@
+## [6.0.2](https://github.com/ChainSafe/js-libp2p-yamux/compare/v6.0.1...v6.0.2) (2024-02-08)
+
+
+### Bug Fixes
+
+* send data during graceful close ([#75](https://github.com/ChainSafe/js-libp2p-yamux/issues/75)) ([f77b9ec](https://github.com/ChainSafe/js-libp2p-yamux/commit/f77b9ec7118720d23073bbfcd96504c0a179f4b2))
+* send data during graceful close. ([#73](https://github.com/ChainSafe/js-libp2p-yamux/issues/73)) ([f5d92da](https://github.com/ChainSafe/js-libp2p-yamux/commit/f5d92da81cefe2edbf504c187d87bd9dde357005))
+
 ## [6.0.1](https://github.com/ChainSafe/js-libp2p-yamux/compare/v6.0.0...v6.0.1) (2023-11-30)
 
 
