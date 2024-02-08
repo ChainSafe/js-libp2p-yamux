@@ -98,7 +98,7 @@ export class YamuxStream extends AbstractStream {
     while (buf.byteLength !== 0) {
       // wait for the send window to refill
       if (this.sendWindowCapacity === 0) {
-        this.log?.trace('wait for send window capacity', this.status)
+        this.log?.trace('wait for send window capacity, status %s', this.status)
         await this.waitForSendWindowCapacity(options)
 
         // check we didn't close while waiting for send window capacity
@@ -172,7 +172,7 @@ export class YamuxStream extends AbstractStream {
     let resolve: () => void
     let reject: (err: Error) => void
     const abort = (): void => {
-      if (this.status === 'open') {
+      if (this.status === 'open' || this.status === 'closing') {
         reject(new CodeError('stream aborted', ERR_STREAM_ABORT))
       } else {
         // the stream was closed already, ignore the failure to send
