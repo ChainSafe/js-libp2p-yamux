@@ -244,8 +244,11 @@ describe('stream', () => {
 
     await sleep(10)
 
-    // the client should close gracefully even though it was waiting to send more data
-    await client.close()
+    // the client should fail to close gracefully because there is unsent data
+    // that will never be sent
+    await client.close({
+      signal: AbortSignal.timeout(10)
+    })
     p.end()
 
     await sendPipe
