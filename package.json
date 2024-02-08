@@ -176,8 +176,8 @@
     "@libp2p/utils": "^5.2.5",
     "get-iterator": "^2.0.1",
     "it-foreach": "^2.0.6",
-    "it-pipe": "^3.0.1",
     "it-pushable": "^3.2.3",
+    "it-stream-types": "^2.0.1",
     "uint8arraylist": "^2.4.8"
   },
   "devDependencies": {
