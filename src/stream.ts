@@ -171,7 +171,7 @@ export class YamuxStream extends AbstractStream {
 
     let resolve: () => void
     let reject: (err: Error) => void
-    const abort = (w: any): void => {
+    const abort = (): void => {
       if (this.status === 'open' || this.status === 'closing') {
         reject(new CodeError('stream aborted', ERR_STREAM_ABORT))
       } else {
