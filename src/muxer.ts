@@ -1,4 +1,4 @@
-import { CodeError, setMaxListeners } from '@libp2p/interface'
+import { CodeError, serviceCapabilities, setMaxListeners } from '@libp2p/interface'
 import { getIterator } from 'get-iterator'
 import { pushable, type Pushable } from 'it-pushable'
 import { Uint8ArrayList } from 'uint8arraylist'
@@ -27,6 +27,12 @@ export class Yamux implements StreamMuxerFactory {
     this._components = components
     this._init = init
   }
+
+  readonly [Symbol.toStringTag] = '@chainsafe/libp2p-yamux'
+
+  readonly [serviceCapabilities]: string[] = [
+    '@libp2p/stream-multiplexing'
+  ]
 
   createStreamMuxer (init?: YamuxMuxerInit): YamuxMuxer {
     return new YamuxMuxer(this._components, {
