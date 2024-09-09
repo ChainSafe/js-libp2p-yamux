@@ -1,5 +1,4 @@
-import { CodeError } from '@libp2p/interface'
-import { ERR_DECODE_INVALID_VERSION } from '../src/constants.js'
+import { InvalidFrameError } from '../src/errors.js'
 import { type FrameHeader, HEADER_LENGTH, YAMUX_VERSION } from '../src/frame.js'
 
 // Slower encode / decode functions that use dataview
@@ -8,7 +7,7 @@ export function decodeHeaderNaive (data: Uint8Array): FrameHeader {
   const view = new DataView(data.buffer, data.byteOffset, data.byteLength)
 
   if (view.getUint8(0) !== YAMUX_VERSION) {
-    throw new CodeError('Invalid frame version', ERR_DECODE_INVALID_VERSION)
+    throw new InvalidFrameError('Invalid frame version')
   }
   return {
     type: view.getUint8(1),

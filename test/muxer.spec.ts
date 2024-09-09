@@ -4,7 +4,6 @@ import { expect } from 'aegir/chai'
 import { duplexPair } from 'it-pair/duplex'
 import { pipe } from 'it-pipe'
 import { type Uint8ArrayList } from 'uint8arraylist'
-import { ERR_MUXER_LOCAL_CLOSED } from '../src/constants.js'
 import { sleep, testClientServer, testYamuxMuxer, type YamuxFixture } from './util.js'
 
 describe('muxer', () => {
@@ -104,7 +103,7 @@ describe('muxer', () => {
 
     expect(() => {
       client.newStream()
-    }).to.throw().with.property('code', ERR_MUXER_LOCAL_CLOSED, 'should not be able to open a stream after close')
+    }).to.throw().with.property('name', 'MuxerClosedError', 'should not be able to open a stream after close')
   })
 
   it('test keep alive', async () => {

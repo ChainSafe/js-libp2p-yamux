@@ -1,7 +1,8 @@
-import { CodeError } from '@libp2p/interface'
+import { AbortError } from '@libp2p/interface'
 import { AbstractStream, type AbstractStreamInit } from '@libp2p/utils/abstract-stream'
 import each from 'it-foreach'
-import { ERR_RECV_WINDOW_EXCEEDED, ERR_STREAM_ABORT, INITIAL_STREAM_WINDOW } from './constants.js'
+import { INITIAL_STREAM_WINDOW } from './constants.js'
+import { ReceiveWindowExceededError } from './errors.js'
 import { Flag, type FrameHeader, FrameType, HEADER_LENGTH } from './frame.js'
 import type { Config } from './config.js'
 import type { AbortOptions } from '@libp2p/interface'
@@ -173,7 +174,7 @@ export class YamuxStream extends AbstractStream {
     let reject: (err: Error) => void
     const abort = (): void => {
       if (this.status === 'open' || this.status === 'closing') {
-        reject(new CodeError('stream aborted', ERR_STREAM_ABORT))
+        reject(new AbortError('Stream aborted'))
       } else {
         // the stream was closed already, ignore the failure to send
         resolve()
@@ -219,7 +220,7 @@ export class YamuxStream extends AbstractStream {
 
     // check that our recv window is not exceeded
     if (this.recvWindowCapacity < header.length) {
-      throw new CodeError('receive window exceeded', ERR_RECV_WINDOW_EXCEEDED, { available: this.recvWindowCapacity, recv: header.length })
+      throw new ReceiveWindowExceededError('Receive window exceeded')
     }
 
     const data = await readData()

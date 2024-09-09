@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/dot-notation */
 import { expect } from 'aegir/chai'
 import { type Pushable, pushable } from 'it-pushable'
-import { ERR_DECODE_IN_PROGRESS } from '../src/constants.js'
 import { Decoder } from '../src/decode.js'
 import { encodeHeader } from '../src/encode.js'
 import { Flag, type FrameHeader, FrameType, GoAwayCode } from '../src/frame.js'
@@ -344,7 +343,7 @@ describe('Decoder', () => {
         }
         expect.fail('decoding another frame before the first is finished should error')
       } catch (e) {
-        expect((e as { code: string }).code).to.equal(ERR_DECODE_IN_PROGRESS)
+        expect(e).to.have.property('name', 'InvalidStateError')
       }
     })
   })

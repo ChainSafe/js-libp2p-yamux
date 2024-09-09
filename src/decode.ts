@@ -1,6 +1,5 @@
-import { CodeError } from '@libp2p/interface'
 import { Uint8ArrayList } from 'uint8arraylist'
-import { ERR_DECODE_INVALID_VERSION, ERR_DECODE_IN_PROGRESS } from './constants.js'
+import { InvalidFrameError, InvalidStateError } from './errors.js'
 import { type FrameHeader, FrameType, HEADER_LENGTH, YAMUX_VERSION } from './frame.js'
 import type { Source } from 'it-stream-types'
 
@@ -15,7 +14,7 @@ const twoPow24 = 2 ** 24
  */
 export function decodeHeader (data: Uint8Array): FrameHeader {
   if (data[0] !== YAMUX_VERSION) {
-    throw new CodeError('Invalid frame version', ERR_DECODE_INVALID_VERSION)
+    throw new InvalidFrameError('Invalid frame version')
   }
   return {
     type: data[1],
@@ -87,7 +86,7 @@ export class Decoder {
     // Sanity check to ensure a header isn't read when another frame is partially decoded
     // In practice this shouldn't happen
     if (this.frameInProgress) {
-      throw new CodeError('decoding frame already in progress', ERR_DECODE_IN_PROGRESS)
+      throw new InvalidStateError('decoding frame already in progress')
     }
 
     if (this.buffer.length < HEADER_LENGTH) {
