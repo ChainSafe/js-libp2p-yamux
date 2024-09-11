@@ -1,3 +1,27 @@
+## [7.0.0](https://github.com/ChainSafe/js-libp2p-yamux/compare/v6.0.2...v7.0.0) (2024-09-11)
+
+### ⚠ BREAKING CHANGES
+
+* requires libp2p@2.x.x
+
+### Features
+
+* add service capabilities definition ([#79](https://github.com/ChainSafe/js-libp2p-yamux/issues/79)) ([0aff43d](https://github.com/ChainSafe/js-libp2p-yamux/commit/0aff43dfb6bc6b4b78ccff9f9186ef65b6a5bbe6))
+
+### Bug Fixes
+
+* upgrade to libp2p@2.x.x ([#84](https://github.com/ChainSafe/js-libp2p-yamux/issues/84)) ([47556c0](https://github.com/ChainSafe/js-libp2p-yamux/commit/47556c0f2c9da48ef8b40cb2fb03431a9c6ae5c9))
+
+### Trivial Changes
+
+* bump aegir from 42.2.11 to 43.0.1 ([#78](https://github.com/ChainSafe/js-libp2p-yamux/issues/78)) ([46af2f8](https://github.com/ChainSafe/js-libp2p-yamux/commit/46af2f8ca49f1a60ae965b70ace6a856c6d03ecc))
+* update aegir to 42.x.x ([#74](https://github.com/ChainSafe/js-libp2p-yamux/issues/74)) ([87b4db9](https://github.com/ChainSafe/js-libp2p-yamux/commit/87b4db9a8deb300cb2ba6efe09b0cc13a08c90b3))
+* update project config ([ca413ad](https://github.com/ChainSafe/js-libp2p-yamux/commit/ca413ad236e76b836f6c3d2613c0ccc678b29fbd))
+
+### Dependencies
+
+* **dev:** bump aegir from 43.0.3 to 44.1.1 ([#83](https://github.com/ChainSafe/js-libp2p-yamux/issues/83)) ([0a8b06f](https://github.com/ChainSafe/js-libp2p-yamux/commit/0a8b06fdc8d6f3d83dfd2d25b8c6a614ceeefc38))
+
 ## [6.0.2](https://github.com/ChainSafe/js-libp2p-yamux/compare/v6.0.1...v6.0.2) (2024-02-08)
 
 
