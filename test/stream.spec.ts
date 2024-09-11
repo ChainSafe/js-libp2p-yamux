@@ -4,7 +4,6 @@ import { expect } from 'aegir/chai'
 import { pipe } from 'it-pipe'
 import { type Pushable, pushable } from 'it-pushable'
 import { defaultConfig } from '../src/config.js'
-import { ERR_RECV_WINDOW_EXCEEDED } from '../src/constants.js'
 import { GoAwayCode } from '../src/frame.js'
 import { StreamState } from '../src/stream.js'
 import { sleep, testClientServer, type YamuxFixture } from './util.js'
@@ -220,7 +219,7 @@ describe('stream', () => {
     try {
       await Promise.all([sendPipe, recvPipe])
     } catch (e) {
-      expect((e as { code: string }).code).to.equal(ERR_RECV_WINDOW_EXCEEDED)
+      expect(e).to.have.property('name', 'ReceiveWindowExceededError')
     }
 
     expect(client).to.have.property('remoteGoAway', GoAwayCode.ProtocolError)
