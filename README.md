@@ -1,9 +1,26 @@
+# @chainsafe/libp2p-yamux
+
 [![codecov](https://img.shields.io/codecov/c/github/ChainSafe/js-libp2p-yamux.svg?style=flat-square)](https://codecov.io/gh/ChainSafe/js-libp2p-yamux)
 [![CI](https://img.shields.io/github/actions/workflow/status/ChainSafe/js-libp2p-yamux/js-test-and-release.yml?branch=master\&style=flat-square)](https://github.com/ChainSafe/js-libp2p-yamux/actions/workflows/js-test-and-release.yml?query=branch%3Amaster)
 
 > Yamux stream multiplexer for libp2p
 
 # About
+
+<!--
+
+!IMPORTANT!
+
+Everything in this README between "# About" and "# Install" is automatically
+generated and will be overwritten the next time the doc generator is run.
+
+To make changes to this section, please update the @packageDocumentation section
+of src/index.js or src/index.ts
+
+To experiment with formatting, please run "npm run docs" from the root of this
+repo and examine the changes made.
+
+-->
 
 This module is a JavaScript implementation of [Yamux from Hashicorp](https://github.com/hashicorp/yamux/blob/master/spec.md) designed to be used with [js-libp2p](https://github.com/libp2p/js-libp2p).
 
@@ -88,7 +105,7 @@ $ npm i @chainsafe/libp2p-yamux
 
 ## Browser `<script>` tag
 
-Loading this module through a script tag will make it's exports available as `ChainsafeLibp2pYamux` in the global namespace.
+Loading this module through a script tag will make its exports available as `ChainsafeLibp2pYamux` in the global namespace.
 
 ```html
 <script src="https://unpkg.com/@chainsafe/libp2p-yamux/dist/index.min.js"></script>
@@ -102,8 +119,8 @@ Loading this module through a script tag will make it's exports available as `Ch
 
 Licensed under either of
 
-- Apache 2.0, ([LICENSE-APACHE](LICENSE-APACHE) / <http://www.apache.org/licenses/LICENSE-2.0>)
-- MIT ([LICENSE-MIT](LICENSE-MIT) / <http://opensource.org/licenses/MIT>)
+- Apache 2.0, ([LICENSE-APACHE](https://github.com/ChainSafe/js-libp2p-yamux/LICENSE-APACHE) / <http://www.apache.org/licenses/LICENSE-2.0>)
+- MIT ([LICENSE-MIT](https://github.com/ChainSafe/js-libp2p-yamux/LICENSE-MIT) / <http://opensource.org/licenses/MIT>)
 
 # Contribution
 
