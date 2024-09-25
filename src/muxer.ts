@@ -499,7 +499,7 @@ export class YamuxMuxer implements StreamMuxer {
         }
         await readData()
       } else {
-        this.log?.('frame for missing stream id=%s', streamID)
+        this.log?.trace('frame for missing stream id=%s', streamID)
       }
       return
     }
