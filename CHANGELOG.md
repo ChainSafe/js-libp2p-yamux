@@ -1,3 +1,9 @@
+## [7.0.1](https://github.com/ChainSafe/js-libp2p-yamux/compare/v7.0.0...v7.0.1) (2024-09-25)
+
+### Bug Fixes
+
+* switch missing stream log to trace ([#90](https://github.com/ChainSafe/js-libp2p-yamux/issues/90)) ([96bfe96](https://github.com/ChainSafe/js-libp2p-yamux/commit/96bfe96d6df52d0b9ea55a87ac8c1f87fdd50a6b))
+
 ## [7.0.0](https://github.com/ChainSafe/js-libp2p-yamux/compare/v6.0.2...v7.0.0) (2024-09-11)
 
 ### ⚠ BREAKING CHANGES
