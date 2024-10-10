@@ -269,6 +269,11 @@ export class YamuxStream extends AbstractStream {
    * potentially sends a window update enabling further writes to take place.
    */
   sendWindowUpdate (): void {
+    // only send window updates if the read status is ready
+    if (this.readStatus !== 'ready') {
+      return
+    }
+
     // determine the flags if any
     const flags = this.getSendFlags()
 
