@@ -2,11 +2,13 @@
 
 import { expect } from 'aegir/chai'
 import { pipe } from 'it-pipe'
-import { type Pushable, pushable } from 'it-pushable'
+import { pushable } from 'it-pushable'
 import { defaultConfig } from '../src/config.js'
 import { GoAwayCode } from '../src/frame.js'
 import { StreamState } from '../src/stream.js'
-import { sleep, testClientServer, type YamuxFixture } from './util.js'
+import { sleep, testClientServer } from './util.js'
+import type { YamuxFixture } from './util.js'
+import type { Pushable } from 'it-pushable'
 import type { Uint8ArrayList } from 'uint8arraylist'
 
 describe('stream', () => {

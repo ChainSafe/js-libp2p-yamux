@@ -1,8 +1,9 @@
 import { itBench } from '@dapplion/benchmark'
 import { decodeHeader } from '../../src/decode.js'
 import { encodeHeader } from '../../src/encode.js'
-import { Flag, type FrameHeader, FrameType } from '../../src/frame.js'
+import { Flag, FrameType } from '../../src/frame.js'
 import { decodeHeaderNaive, encodeHeaderNaive } from '../codec.util.js'
+import type { FrameHeader } from '../../src/frame.js'
 
 describe('codec benchmark', () => {
   for (const { encode, name } of [

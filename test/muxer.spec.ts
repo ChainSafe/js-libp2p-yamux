@@ -3,8 +3,9 @@
 import { expect } from 'aegir/chai'
 import { duplexPair } from 'it-pair/duplex'
 import { pipe } from 'it-pipe'
-import { type Uint8ArrayList } from 'uint8arraylist'
-import { sleep, testClientServer, testYamuxMuxer, type YamuxFixture } from './util.js'
+import { sleep, testClientServer, testYamuxMuxer } from './util.js'
+import type { YamuxFixture } from './util.js'
+import type { Uint8ArrayList } from 'uint8arraylist'
 
 describe('muxer', () => {
   let client: YamuxFixture

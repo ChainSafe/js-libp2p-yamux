@@ -1,10 +1,11 @@
 import { prefixLogger } from '@libp2p/logger'
 import { duplexPair } from 'it-pair/duplex'
 import { pipe } from 'it-pipe'
-import { type Uint8ArrayList } from 'uint8arraylist'
-import { Yamux, YamuxMuxer, type YamuxMuxerInit } from '../src/muxer.js'
+import { Yamux, YamuxMuxer } from '../src/muxer.js'
 import type { Config } from '../src/config.js'
+import type { YamuxMuxerInit } from '../src/muxer.js'
 import type { Source, Transform } from 'it-stream-types'
+import type { Uint8ArrayList } from 'uint8arraylist'
 
 const isClient = (() => {
   let client = false
