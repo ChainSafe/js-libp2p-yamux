@@ -127,13 +127,13 @@ export class Decoder {
 export function returnlessSource<T> (source: Source<T>): Source<T> {
   if ((source as Iterable<T>)[Symbol.iterator] !== undefined) {
     const iterator = (source as Iterable<T>)[Symbol.iterator]()
-    iterator.return = undefined
+    Object.defineProperty(iterator, 'return', {})
     return {
       [Symbol.iterator] () { return iterator }
     }
   } else if ((source as AsyncIterable<T>)[Symbol.asyncIterator] !== undefined) {
     const iterator = (source as AsyncIterable<T>)[Symbol.asyncIterator]()
-    iterator.return = undefined
+    Object.defineProperty(iterator, 'return', {})
     return {
       [Symbol.asyncIterator] () { return iterator }
     }
