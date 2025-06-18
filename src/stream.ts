@@ -15,7 +15,7 @@ export enum StreamState {
   SYNSent,
   SYNReceived,
   Established,
-  Finished,
+  Finished
 }
 
 export interface YamuxStreamInit extends AbstractStreamInit {

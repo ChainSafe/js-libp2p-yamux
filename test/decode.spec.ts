@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/dot-notation */
 import { expect } from 'aegir/chai'
 import { pushable } from 'it-pushable'
 import { Decoder } from '../src/decode.js'
