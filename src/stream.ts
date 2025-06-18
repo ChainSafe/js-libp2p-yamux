@@ -1,11 +1,13 @@
 import { AbortError } from '@libp2p/interface'
-import { AbstractStream, type AbstractStreamInit } from '@libp2p/utils/abstract-stream'
+import { AbstractStream } from '@libp2p/utils/abstract-stream'
 import each from 'it-foreach'
 import { INITIAL_STREAM_WINDOW } from './constants.js'
 import { ReceiveWindowExceededError } from './errors.js'
-import { Flag, type FrameHeader, FrameType, HEADER_LENGTH } from './frame.js'
+import { Flag, FrameType, HEADER_LENGTH } from './frame.js'
 import type { Config } from './config.js'
+import type { FrameHeader } from './frame.js'
 import type { AbortOptions } from '@libp2p/interface'
+import type { AbstractStreamInit } from '@libp2p/utils/abstract-stream'
 import type { Uint8ArrayList } from 'uint8arraylist'
 
 export enum StreamState {
@@ -13,7 +15,7 @@ export enum StreamState {
   SYNSent,
   SYNReceived,
   Established,
-  Finished,
+  Finished
 }
 
 export interface YamuxStreamInit extends AbstractStreamInit {

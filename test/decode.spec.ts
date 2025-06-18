@@ -1,10 +1,11 @@
-/* eslint-disable @typescript-eslint/dot-notation */
 import { expect } from 'aegir/chai'
-import { type Pushable, pushable } from 'it-pushable'
+import { pushable } from 'it-pushable'
 import { Decoder } from '../src/decode.js'
 import { encodeHeader } from '../src/encode.js'
-import { Flag, type FrameHeader, FrameType, GoAwayCode } from '../src/frame.js'
+import { Flag, FrameType, GoAwayCode } from '../src/frame.js'
 import { timeout } from './util.js'
+import type { FrameHeader } from '../src/frame.js'
+import type { Pushable } from 'it-pushable'
 import type { Uint8ArrayList } from 'uint8arraylist'
 
 const frames: Array<{ header: FrameHeader, data?: Uint8Array }> = [
