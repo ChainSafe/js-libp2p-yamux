@@ -1,6 +1,7 @@
 import { InvalidParametersError, MuxerClosedError, TooManyOutboundProtocolStreamsError, serviceCapabilities, setMaxListeners } from '@libp2p/interface'
 import { getIterator } from 'get-iterator'
 import { pushable } from 'it-pushable'
+import { raceSignal } from 'race-signal'
 import { Uint8ArrayList } from 'uint8arraylist'
 import { defaultConfig, verifyConfig } from './config.js'
 import { PROTOCOL_ERRORS } from './constants.js'
@@ -395,17 +396,16 @@ export class YamuxMuxer implements StreamMuxer {
   }
 
   private async keepAliveLoop (): Promise<void> {
-    const abortPromise = new Promise((_resolve, reject) => { this.closeController.signal.addEventListener('abort', reject, { once: true }) })
     this.log?.trace('muxer keepalive enabled interval=%s', this.config.keepAliveInterval)
     while (true) {
       let timeoutId
       try {
-        await Promise.race([
-          abortPromise,
+        await raceSignal(
           new Promise((resolve) => {
             timeoutId = setTimeout(resolve, this.config.keepAliveInterval)
-          })
-        ])
+          }),
+          this.closeController.signal
+        )
         this.ping().catch(e => this.log?.error('ping error: %s', e))
       } catch (e) {
         // closed
