@@ -1,3 +1,9 @@
+## [7.0.3](https://github.com/ChainSafe/js-libp2p-yamux/compare/v7.0.2...v7.0.3) (2025-06-25)
+
+### Bug Fixes
+
+* keep-alive memory leak ([#102](https://github.com/ChainSafe/js-libp2p-yamux/issues/102)) ([b470fc6](https://github.com/ChainSafe/js-libp2p-yamux/commit/b470fc6e1bb838677ebcb24fff72930a609aa88b))
+
 ## [7.0.2](https://github.com/ChainSafe/js-libp2p-yamux/compare/v7.0.1...v7.0.2) (2025-06-18)
 
 ### Dependencies
