@@ -1,6 +1,7 @@
 import { Uint8ArrayList } from 'uint8arraylist'
 import { InvalidFrameError, InvalidStateError } from './errors.js'
-import { type FrameHeader, FrameType, HEADER_LENGTH, YAMUX_VERSION } from './frame.js'
+import { FrameType, HEADER_LENGTH, YAMUX_VERSION } from './frame.js'
+import type { FrameHeader } from './frame.js'
 import type { Source } from 'it-stream-types'
 
 // used to bitshift in decoding

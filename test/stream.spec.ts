@@ -2,11 +2,13 @@
 
 import { expect } from 'aegir/chai'
 import { pipe } from 'it-pipe'
-import { type Pushable, pushable } from 'it-pushable'
+import { pushable } from 'it-pushable'
 import { defaultConfig } from '../src/config.js'
 import { GoAwayCode } from '../src/frame.js'
 import { StreamState } from '../src/stream.js'
-import { sleep, testClientServer, type YamuxFixture } from './util.js'
+import { sleep, testClientServer } from './util.js'
+import type { YamuxFixture } from './util.js'
+import type { Pushable } from 'it-pushable'
 import type { Uint8ArrayList } from 'uint8arraylist'
 
 describe('stream', () => {
@@ -43,9 +45,8 @@ describe('stream', () => {
 
     // the window capacities should have refilled via window updates as received data was consumed
 
-    // eslint-disable-next-line @typescript-eslint/dot-notation
     expect(c1['sendWindowCapacity']).to.be.gte(defaultConfig.initialStreamWindowSize)
-    // eslint-disable-next-line @typescript-eslint/dot-notation
+
     expect(s1['recvWindowCapacity']).to.be.gte(defaultConfig.initialStreamWindowSize)
   })
 
@@ -71,9 +72,8 @@ describe('stream', () => {
     await Promise.all([sendPipe, recvPipe])
     // the window capacities should have refilled via window updates as received data was consumed
 
-    // eslint-disable-next-line @typescript-eslint/dot-notation
     expect(c1['sendWindowCapacity']).to.be.gte(defaultConfig.initialStreamWindowSize)
-    // eslint-disable-next-line @typescript-eslint/dot-notation
+
     expect(s1['recvWindowCapacity']).to.be.gte(defaultConfig.initialStreamWindowSize)
   })
 
@@ -103,9 +103,8 @@ describe('stream', () => {
     await Promise.all([sendPipe, recvPipe])
     // the window capacities should have refilled via window updates as received data was consumed
 
-    // eslint-disable-next-line @typescript-eslint/dot-notation
     expect(c1['sendWindowCapacity']).to.be.gte(defaultConfig.initialStreamWindowSize)
-    // eslint-disable-next-line @typescript-eslint/dot-notation
+
     expect(s1['recvWindowCapacity']).to.be.gte(defaultConfig.initialStreamWindowSize)
   })
 
@@ -205,7 +204,7 @@ describe('stream', () => {
 
     c1.sendData = async (data: Uint8ArrayList): Promise<void> => {
       await c1SendData(data)
-      // eslint-disable-next-line @typescript-eslint/dot-notation
+
       c1['sendWindowCapacity'] = defaultConfig.initialStreamWindowSize * 10
     }
     p.push(new Uint8Array(defaultConfig.initialStreamWindowSize))

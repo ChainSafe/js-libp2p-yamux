@@ -1,5 +1,6 @@
 import { InvalidFrameError } from '../src/errors.js'
-import { type FrameHeader, HEADER_LENGTH, YAMUX_VERSION } from '../src/frame.js'
+import { HEADER_LENGTH, YAMUX_VERSION } from '../src/frame.js'
+import type { FrameHeader } from '../src/frame.js'
 
 // Slower encode / decode functions that use dataview
 

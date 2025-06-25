@@ -2,9 +2,9 @@ import { defaultLogger } from '@libp2p/logger'
 import { mplex } from '@libp2p/mplex'
 import { duplexPair } from 'it-pair/duplex'
 import { pipe } from 'it-pipe'
-import { type Uint8ArrayList } from 'uint8arraylist'
 import type { StreamMuxer, StreamMuxerInit } from '@libp2p/interface'
 import type { Source, Transform } from 'it-stream-types'
+import type { Uint8ArrayList } from 'uint8arraylist'
 
 const factory = mplex()({
   logger: defaultLogger()

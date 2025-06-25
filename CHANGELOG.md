@@ -1,3 +1,9 @@
+## [7.0.2](https://github.com/ChainSafe/js-libp2p-yamux/compare/v7.0.1...v7.0.2) (2025-06-18)
+
+### Dependencies
+
+* **dev:** bump aegir from 44.1.4 to 45.0.8 ([#98](https://github.com/ChainSafe/js-libp2p-yamux/issues/98)) ([1f97536](https://github.com/ChainSafe/js-libp2p-yamux/commit/1f97536483b758f988fc716f190a3d8d6253ed3b))
+
 ## [7.0.1](https://github.com/ChainSafe/js-libp2p-yamux/compare/v7.0.0...v7.0.1) (2024-09-25)
 
 ### Bug Fixes
