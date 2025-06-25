@@ -1,3 +1,9 @@
+## [7.0.4](https://github.com/ChainSafe/js-libp2p-yamux/compare/v7.0.3...v7.0.4) (2025-06-25)
+
+### Dependencies
+
+* **dev:** bump @dapplion/benchmark from 0.2.5 to 1.0.0 ([#97](https://github.com/ChainSafe/js-libp2p-yamux/issues/97)) ([844c13e](https://github.com/ChainSafe/js-libp2p-yamux/commit/844c13ec60efb0f3b763630a7769f6377fe21e40))
+
 ## [7.0.3](https://github.com/ChainSafe/js-libp2p-yamux/compare/v7.0.2...v7.0.3) (2025-06-25)
 
 ### Bug Fixes
