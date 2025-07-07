@@ -1,3 +1,21 @@
+## [7.0.4](https://github.com/ChainSafe/js-libp2p-yamux/compare/v7.0.3...v7.0.4) (2025-06-25)
+
+### Dependencies
+
+* **dev:** bump @dapplion/benchmark from 0.2.5 to 1.0.0 ([#97](https://github.com/ChainSafe/js-libp2p-yamux/issues/97)) ([844c13e](https://github.com/ChainSafe/js-libp2p-yamux/commit/844c13ec60efb0f3b763630a7769f6377fe21e40))
+
+## [7.0.3](https://github.com/ChainSafe/js-libp2p-yamux/compare/v7.0.2...v7.0.3) (2025-06-25)
+
+### Bug Fixes
+
+* keep-alive memory leak ([#102](https://github.com/ChainSafe/js-libp2p-yamux/issues/102)) ([b470fc6](https://github.com/ChainSafe/js-libp2p-yamux/commit/b470fc6e1bb838677ebcb24fff72930a609aa88b))
+
+## [7.0.2](https://github.com/ChainSafe/js-libp2p-yamux/compare/v7.0.1...v7.0.2) (2025-06-18)
+
+### Dependencies
+
+* **dev:** bump aegir from 44.1.4 to 45.0.8 ([#98](https://github.com/ChainSafe/js-libp2p-yamux/issues/98)) ([1f97536](https://github.com/ChainSafe/js-libp2p-yamux/commit/1f97536483b758f988fc716f190a3d8d6253ed3b))
+
 ## [7.0.1](https://github.com/ChainSafe/js-libp2p-yamux/compare/v7.0.0...v7.0.1) (2024-09-25)
 
 ### Bug Fixes

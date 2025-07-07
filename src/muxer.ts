@@ -1,16 +1,20 @@
 import { InvalidParametersError, MuxerClosedError, TooManyOutboundProtocolStreamsError, serviceCapabilities, setMaxListeners } from '@libp2p/interface'
 import { getIterator } from 'get-iterator'
-import { pushable, type Pushable } from 'it-pushable'
+import { pushable } from 'it-pushable'
+import { raceSignal } from 'race-signal'
 import { Uint8ArrayList } from 'uint8arraylist'
-import { type Config, defaultConfig, verifyConfig } from './config.js'
+import { defaultConfig, verifyConfig } from './config.js'
 import { PROTOCOL_ERRORS } from './constants.js'
 import { Decoder } from './decode.js'
 import { encodeHeader } from './encode.js'
 import { InvalidFrameError, NotMatchingPingError, UnrequestedPingError } from './errors.js'
-import { Flag, type FrameHeader, FrameType, GoAwayCode } from './frame.js'
+import { Flag, FrameType, GoAwayCode } from './frame.js'
 import { StreamState, YamuxStream } from './stream.js'
+import type { Config } from './config.js'
+import type { FrameHeader } from './frame.js'
 import type { YamuxMuxerComponents } from './index.js'
 import type { AbortOptions, ComponentLogger, Logger, Stream, StreamMuxer, StreamMuxerFactory, StreamMuxerInit } from '@libp2p/interface'
+import type { Pushable } from 'it-pushable'
 import type { Sink, Source } from 'it-stream-types'
 
 const YAMUX_PROTOCOL_ID = '/yamux/1.0.0'
@@ -392,17 +396,16 @@ export class YamuxMuxer implements StreamMuxer {
   }
 
   private async keepAliveLoop (): Promise<void> {
-    const abortPromise = new Promise((_resolve, reject) => { this.closeController.signal.addEventListener('abort', reject, { once: true }) })
     this.log?.trace('muxer keepalive enabled interval=%s', this.config.keepAliveInterval)
     while (true) {
       let timeoutId
       try {
-        await Promise.race([
-          abortPromise,
+        await raceSignal(
           new Promise((resolve) => {
             timeoutId = setTimeout(resolve, this.config.keepAliveInterval)
-          })
-        ])
+          }),
+          this.closeController.signal
+        )
         this.ping().catch(e => this.log?.error('ping error: %s', e))
       } catch (e) {
         // closed

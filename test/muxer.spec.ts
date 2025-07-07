@@ -3,8 +3,9 @@
 import { expect } from 'aegir/chai'
 import { duplexPair } from 'it-pair/duplex'
 import { pipe } from 'it-pipe'
-import { type Uint8ArrayList } from 'uint8arraylist'
-import { sleep, testClientServer, testYamuxMuxer, type YamuxFixture } from './util.js'
+import { sleep, testClientServer, testYamuxMuxer } from './util.js'
+import type { YamuxFixture } from './util.js'
+import type { Uint8ArrayList } from 'uint8arraylist'
 
 describe('muxer', () => {
   let client: YamuxFixture
@@ -91,7 +92,6 @@ describe('muxer', () => {
     expect(clientRTTs[0]).to.equal(clientRTTs[1])
     expect(clientRTTs[1]).to.equal(clientRTTs[2])
 
-    // eslint-disable-next-line @typescript-eslint/dot-notation
     expect(client['nextPingID']).to.equal(1)
 
     await client.close()
@@ -111,7 +111,6 @@ describe('muxer', () => {
 
     await sleep(1000)
 
-    // eslint-disable-next-line @typescript-eslint/dot-notation
     expect(client['nextPingID']).to.be.gt(2)
     await client.close()
     await server.close()
