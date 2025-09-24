@@ -1,11 +1,25 @@
 import { Uint8ArrayList } from 'uint8arraylist'
-import { InvalidFrameError, InvalidStateError } from './errors.js'
+import { InvalidFrameError } from './errors.js'
 import { FrameType, HEADER_LENGTH, YAMUX_VERSION } from './frame.js'
 import type { FrameHeader } from './frame.js'
-import type { Source } from 'it-stream-types'
 
-// used to bitshift in decoding
-// native bitshift can overflow into a negative number, so we bitshift by multiplying by a power of 2
+export interface Frame {
+  header: FrameHeader
+  data?: Uint8ArrayList
+}
+
+export interface DataFrame {
+  header: FrameHeader
+  data: Uint8ArrayList
+}
+
+export function isDataFrame (frame: Frame): frame is DataFrame {
+  return frame.header.type === FrameType.Data && frame.data !== null
+}
+
+// used to bit shift in decoding
+// native bit shift can overflow into a negative number, so we bit shift by
+// multiplying by a power of 2
 const twoPow24 = 2 ** 24
 
 /**
@@ -17,6 +31,7 @@ export function decodeHeader (data: Uint8Array): FrameHeader {
   if (data[0] !== YAMUX_VERSION) {
     throw new InvalidFrameError('Invalid frame version')
   }
+
   return {
     type: data[1],
     flag: (data[2] << 8) + data[3],
@@ -29,24 +44,11 @@ export function decodeHeader (data: Uint8Array): FrameHeader {
  * Decodes yamux frames from a source
  */
 export class Decoder {
-  private readonly source: Source<Uint8Array | Uint8ArrayList>
   /** Buffer for in-progress frames */
   private readonly buffer: Uint8ArrayList
-  /** Used to sanity check against decoding while in an inconsistent state */
-  private frameInProgress: boolean
 
-  constructor (source: Source<Uint8Array | Uint8ArrayList>) {
-    // Normally, when entering a for-await loop with an iterable/async iterable, the only ways to exit the loop are:
-    // 1. exhaust the iterable
-    // 2. throw an error - slow, undesirable if there's not actually an error
-    // 3. break or return - calls the iterable's `return` method, finalizing the iterable, no more iteration possible
-    //
-    // In this case, we want to enter (and exit) a for-await loop per chunked data frame and continue processing the iterable.
-    // To do this, we strip the `return` method from the iterator and can now `break` early and continue iterating.
-    // Exiting the main for-await is still possible via 1. and 2.
-    this.source = returnlessSource(source)
+  constructor () {
     this.buffer = new Uint8ArrayList()
-    this.frameInProgress = false
   }
 
   /**
@@ -55,90 +57,49 @@ export class Decoder {
    * Note: If `readData` is emitted, it _must_ be called before the next iteration
    * Otherwise an error is thrown
    */
-  async * emitFrames (): AsyncGenerator<{ header: FrameHeader, readData?(): Promise<Uint8ArrayList> }> {
-    for await (const chunk of this.source) {
-      this.buffer.append(chunk)
+  * emitFrames (buf: Uint8Array | Uint8ArrayList): Generator<Frame> {
+    this.buffer.append(buf)
 
-      // Loop to consume as many bytes from the buffer as possible
-      // Eg: when a single chunk contains several frames
-      while (true) {
-        const header = this.readHeader()
-        if (header === undefined) {
-          break
-        }
+    // Loop to consume as many bytes from the buffer as possible
+    // Eg: when a single chunk contains several frames
+    while (true) {
+      const frame = this.readFrame()
 
-        const { type, length } = header
-        if (type === FrameType.Data) {
-          // This is a data frame, the frame body must still be read
-          // `readData` must be called before the next iteration here
-          this.frameInProgress = true
-          yield {
-            header,
-            readData: this.readBytes.bind(this, length)
-          }
-        } else {
-          yield { header }
-        }
+      if (frame === undefined) {
+        break
       }
+
+      yield frame
     }
   }
 
-  private readHeader (): FrameHeader | undefined {
-    // Sanity check to ensure a header isn't read when another frame is partially decoded
-    // In practice this shouldn't happen
-    if (this.frameInProgress) {
-      throw new InvalidStateError('decoding frame already in progress')
-    }
+  private readFrame (): Frame | undefined {
+    let frameSize = HEADER_LENGTH
 
-    if (this.buffer.length < HEADER_LENGTH) {
+    if (this.buffer.byteLength < HEADER_LENGTH) {
       // not enough data yet
       return
     }
 
+    // TODO: use sublist?
     const header = decodeHeader(this.buffer.subarray(0, HEADER_LENGTH))
-    this.buffer.consume(HEADER_LENGTH)
-    return header
-  }
 
-  private async readBytes (length: number): Promise<Uint8ArrayList> {
-    if (this.buffer.length < length) {
-      for await (const chunk of this.source) {
-        this.buffer.append(chunk)
+    if (header.type === FrameType.Data) {
+      frameSize += header.length
 
-        if (this.buffer.length >= length) {
-          // see note above, the iterator is not `return`ed here
-          break
-        }
+      if (this.buffer.byteLength < frameSize) {
+        // not enough data yet
+        return
       }
+
+      const data = this.buffer.sublist(HEADER_LENGTH, frameSize)
+      this.buffer.consume(frameSize)
+
+      return { header, data }
     }
 
-    const out = this.buffer.sublist(0, length)
-    this.buffer.consume(length)
+    this.buffer.consume(frameSize)
 
-    // The next frame can now be decoded
-    this.frameInProgress = false
-
-    return out
-  }
-}
-
-/**
- * Strip the `return` method from a `Source`
- */
-export function returnlessSource<T> (source: Source<T>): Source<T> {
-  if ((source as Iterable<T>)[Symbol.iterator] !== undefined) {
-    const iterator = (source as Iterable<T>)[Symbol.iterator]()
-    iterator.return = undefined
-    return {
-      [Symbol.iterator] () { return iterator }
-    }
-  } else if ((source as AsyncIterable<T>)[Symbol.asyncIterator] !== undefined) {
-    const iterator = (source as AsyncIterable<T>)[Symbol.asyncIterator]()
-    iterator.return = undefined
-    return {
-      [Symbol.asyncIterator] () { return iterator }
-    }
-  } else {
-    throw new Error('a source must be either an iterable or an async iterable')
+    return { header }
   }
 }

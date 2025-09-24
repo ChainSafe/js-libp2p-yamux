@@ -1,12 +1,10 @@
 import { expect } from 'aegir/chai'
-import { pushable } from 'it-pushable'
+import all from 'it-all'
+import { Uint8ArrayList } from 'uint8arraylist'
 import { Decoder } from '../src/decode.js'
 import { encodeHeader } from '../src/encode.js'
 import { Flag, FrameType, GoAwayCode } from '../src/frame.js'
-import { timeout } from './util.js'
 import type { FrameHeader } from '../src/frame.js'
-import type { Pushable } from 'it-pushable'
-import type { Uint8ArrayList } from 'uint8arraylist'
 
 const frames: Array<{ header: FrameHeader, data?: Uint8Array }> = [
   { header: { type: FrameType.Ping, flag: Flag.SYN, streamID: 0, length: 1 } },
@@ -65,8 +63,7 @@ export const randomRanges = (length: number): number[][] => {
 describe('Decoder internals', () => {
   describe('readHeader', () => {
     const frame = frames[0]
-    const p = pushable()
-    const d = new Decoder(p)
+    const d = new Decoder()
 
     afterEach(() => {
       d['buffer'].consume(d['buffer'].length)
@@ -74,156 +71,77 @@ describe('Decoder internals', () => {
 
     it('should handle an empty buffer', async () => {
       expect(d['buffer'].length, 'a freshly created decoder should have an empty buffer').to.equal(0)
-      expect(d['readHeader'](), 'an empty buffer should read no header').to.equal(undefined)
+      expect(all(d.emitFrames(new Uint8Array()))).to.be.empty('an empty buffer should read no header')
     })
 
     it('should handle buffer length == header length', async () => {
-      d['buffer'].append(encodeHeader(frame.header))
-
-      expect(d['readHeader'](), 'the decoded header should match the input').to.deep.equal(frame.header)
+      expect(all(d.emitFrames(encodeHeader(frame.header)))).to.deep.equal([frame])
       expect(d['buffer'].length, 'the buffer should be fully drained').to.equal(0)
     })
 
     it('should handle buffer length < header length', async () => {
       const upTo = 2
 
-      d['buffer'].append(encodeHeader(frame.header).slice(0, upTo))
+      const buf = encodeHeader(frame.header)
 
-      expect(d['readHeader'](), 'an buffer that has insufficient bytes should read no header').to.equal(undefined)
+      expect(all(d.emitFrames(buf.slice(0, upTo)))).to.be.empty('an buffer that has insufficient bytes should read no header')
       expect(d['buffer'].length, 'a buffer that has insufficient bytes should not be consumed').to.equal(upTo)
 
-      d['buffer'].append(encodeHeader(frame.header).slice(upTo))
-
-      expect(d['readHeader'](), 'the decoded header should match the input').to.deep.equal(frame.header)
+      expect(all(d.emitFrames(buf.slice(upTo)))).to.deep.equal([frame], 'the decoded header should match the input')
       expect(d['buffer'].length, 'the buffer should be fully drained').to.equal(0)
     })
 
     it('should handle buffer length > header length', async () => {
       const more = 10
 
-      d['buffer'].append(encodeHeader(frame.header))
-      d['buffer'].append(new Uint8Array(more))
+      const buf = new Uint8ArrayList(
+        encodeHeader(frame.header),
+        new Uint8Array(more)
+      )
 
-      expect(d['readHeader'](), 'the decoded header should match the input').to.deep.equal(frame.header)
+      expect(all(d.emitFrames(buf.subarray()))).to.deep.equal([frame], 'the decoded header should match the input')
       expect(d['buffer'].length, 'the buffer should be partially drained').to.equal(more)
-    })
-  })
-
-  describe('readBytes', () => {
-    const p = pushable()
-    const d = new Decoder(p)
-
-    afterEach(() => {
-      d['buffer'].consume(d['buffer'].length)
-    })
-
-    it('should handle buffer length == requested length', async () => {
-      const requested = 10
-
-      d['buffer'].append(data(requested))
-
-      let actual
-      try {
-        actual = await Promise.race([timeout(1), d['readBytes'](requested)])
-      } catch (e) {
-        expect.fail('readBytes timed out')
-      }
-
-      expectEqualBytes(actual as Uint8ArrayList, data(requested), 'read bytes should equal input')
-      expect(d['buffer'].length, 'buffer should be drained').to.deep.equal(0)
-    })
-
-    it('should handle buffer length > requested length', async () => {
-      const requested = 10
-
-      d['buffer'].append(data(requested * 2))
-
-      let actual
-      try {
-        actual = await Promise.race([timeout(1), d['readBytes'](requested)])
-      } catch (e) {
-        expect.fail('readBytes timed out')
-      }
-
-      expectEqualBytes(actual as Uint8ArrayList, data(requested), 'read bytes should equal input')
-      expect(d['buffer'].length, 'buffer should be partially drained').to.deep.equal(requested)
-    })
-
-    it('should handle buffer length < requested length, data available', async () => {
-      const requested = 10
-
-      p.push(data(requested))
-
-      let actual
-      try {
-        actual = await Promise.race([timeout(10), d['readBytes'](requested)])
-      } catch (e) {
-        expect.fail('readBytes timed out')
-      }
-
-      expectEqualBytes(actual as Uint8ArrayList, data(requested), 'read bytes should equal input')
-      expect(d['buffer'].length, 'buffer should be drained').to.deep.equal(0)
-    })
-
-    it('should handle buffer length < requested length, data not available', async () => {
-      const requested = 10
-
-      p.push(data(requested - 1))
-
-      try {
-        await Promise.race([timeout(10), d['readBytes'](requested)])
-        expect.fail('readBytes should not resolve until the source + buffer have enough bytes')
-      } catch (e) {
-      }
     })
   })
 })
 
 describe('Decoder', () => {
   describe('emitFrames', () => {
-    let p: Pushable<Uint8Array>
     let d: Decoder
 
     beforeEach(() => {
-      p = pushable()
-      d = new Decoder(p)
+      d = new Decoder()
     })
 
     it('should emit frames from source chunked by frame', async () => {
+      const input = new Uint8ArrayList()
       const expected = []
       for (const [i, frame] of frames.entries()) {
-        p.push(encodeHeader(frame.header))
+        input.append(encodeHeader(frame.header))
         expected.push(frame)
 
         // sprinkle in more data frames
         if (i % 2 === 1) {
           const df = dataFrame(i * 100)
-          p.push(encodeHeader(df.header))
-          p.push(df.data)
+          input.append(encodeHeader(df.header))
+          input.append(df.data)
           expected.push(df)
         }
       }
-      p.end()
 
-      const actual = []
-      for await (const frame of d.emitFrames()) {
-        if (frame.readData === undefined) {
-          actual.push(frame)
-        } else {
-          actual.push({ header: frame.header, data: await frame.readData() })
-        }
-      }
+      const actual = all(d.emitFrames(input.subarray()))
 
       expectEqualDataFrames(actual, expected)
     })
 
     it('should emit frames from source chunked by partial frame', async () => {
       const chunkSize = 5
+      const input = new Uint8ArrayList()
       const expected = []
       for (const [i, frame] of frames.entries()) {
         const encoded = encodeHeader(frame.header)
         for (let i = 0; i < encoded.length; i += chunkSize) {
-          p.push(encoded.slice(i, i + chunkSize))
+          input.append(encoded.slice(i, i + chunkSize))
         }
         expected.push(frame)
 
@@ -232,27 +150,19 @@ describe('Decoder', () => {
           const df = dataFrame(i * 100)
           const encoded = Uint8Array.from([...encodeHeader(df.header), ...df.data])
           for (let i = 0; i < encoded.length; i += chunkSize) {
-            p.push(encoded.slice(i, i + chunkSize))
+            input.append(encoded.slice(i, i + chunkSize))
           }
           expected.push(df)
         }
       }
-      p.end()
 
-      const actual = []
-      for await (const frame of d.emitFrames()) {
-        if (frame.readData === undefined) {
-          actual.push(frame)
-        } else {
-          actual.push({ header: frame.header, data: await frame.readData() })
-        }
-      }
+      const actual = all(d.emitFrames(input.subarray()))
 
-      expect(p.readableLength).to.equal(0)
       expectEqualDataFrames(actual, expected)
     })
 
     it('should emit frames from source chunked by multiple frames', async () => {
+      const input = new Uint8ArrayList()
       const expected = []
       for (let i = 0; i < frames.length; i++) {
         const encoded1 = encodeHeader(frames[i].header)
@@ -272,23 +182,16 @@ describe('Decoder', () => {
         encodedChunk.set(encoded2, encoded1.length)
         encodedChunk.set(encoded3, encoded1.length + encoded2.length)
 
-        p.push(encodedChunk)
+        input.append(encodedChunk)
       }
-      p.end()
 
-      const actual = []
-      for await (const frame of d.emitFrames()) {
-        if (frame.readData === undefined) {
-          actual.push(frame)
-        } else {
-          actual.push({ header: frame.header, data: await frame.readData() })
-        }
-      }
+      const actual = all(d.emitFrames(input.subarray()))
 
       expectEqualDataFrames(actual, expected)
     })
 
-    it('should emit frames from source chunked chaoticly', async () => {
+    it('should emit frames from source chunked chaotically', async () => {
+      const input = new Uint8ArrayList()
       const expected = []
       const encodedFrames = []
       for (const [i, frame] of frames.entries()) {
@@ -305,7 +208,7 @@ describe('Decoder', () => {
       }
 
       // create a single byte array of all frames to send
-      // so that we can chunk them chaoticly
+      // so that we can chunk them chaotically
       const encoded = new Uint8Array(encodedFrames.reduce((a, b) => a + b.length, 0))
       let i = 0
       for (const e of encodedFrames) {
@@ -314,38 +217,12 @@ describe('Decoder', () => {
       }
 
       for (const [i, j] of randomRanges(encoded.length)) {
-        p.push(encoded.slice(i, j))
+        input.append(encoded.slice(i, j))
       }
-      p.end()
 
-      const actual = []
-      for await (const frame of d.emitFrames()) {
-        if (frame.readData === undefined) {
-          actual.push(frame)
-        } else {
-          actual.push({ header: frame.header, data: await frame.readData() })
-        }
-      }
+      const actual = all(d.emitFrames(input.subarray()))
 
       expectEqualDataFrames(actual, expected)
-    })
-
-    it('should error decoding frame while another decode is in progress', async () => {
-      const df1 = dataFrame(100)
-      p.push(encodeHeader(df1.header))
-      p.push(df1.data)
-      const df2 = dataFrame(100)
-      p.push(encodeHeader(df2.header))
-      p.push(df2.data)
-
-      try {
-        for await (const frame of d.emitFrames()) {
-          void frame
-        }
-        expect.fail('decoding another frame before the first is finished should error')
-      } catch (e) {
-        expect(e).to.have.property('name', 'InvalidStateError')
-      }
     })
   })
 })
