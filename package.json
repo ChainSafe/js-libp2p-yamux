@@ -172,7 +172,7 @@
   },
   "dependencies": {
     "@libp2p/interface": "^2.0.0",
-    "@libp2p/utils": "^6.0.0",
+    "@libp2p/utils": "^7.0.0",
     "get-iterator": "^2.0.1",
     "it-foreach": "^2.0.6",
     "it-pushable": "^3.2.3",
