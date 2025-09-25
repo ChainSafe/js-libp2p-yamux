@@ -269,7 +269,7 @@ export class YamuxStream extends AbstractStream {
   sendWindowUpdate (): void {
     // only send window updates if the stream is not closed or closing
     if (this.readStatus === 'closed' || this.readStatus === 'closing') {
-       return
+      return
     }
 
     if (this.state === StreamState.Paused) {
