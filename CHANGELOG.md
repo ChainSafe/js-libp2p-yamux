@@ -1,3 +1,13 @@
+## [8.0.0](https://github.com/ChainSafe/js-libp2p-yamux/compare/v7.0.4...v8.0.0) (2025-09-25)
+
+### ⚠ BREAKING CHANGES
+
+* Must be used with `libp2p@3.x.x`, it cannot be used with earlier versions
+
+### Features
+
+* update to libp2p v3 api ([#105](https://github.com/ChainSafe/js-libp2p-yamux/issues/105)) ([bc5e09e](https://github.com/ChainSafe/js-libp2p-yamux/commit/bc5e09ebd207b8bc3a6154accef0a59e6c6f1792))
+
 ## [7.0.4](https://github.com/ChainSafe/js-libp2p-yamux/compare/v7.0.3...v7.0.4) (2025-06-25)
 
 ### Dependencies
