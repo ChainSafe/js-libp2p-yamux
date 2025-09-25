@@ -1,117 +1,138 @@
 /* eslint-env mocha */
 
+import { multiaddrConnectionPair, pipe } from '@libp2p/utils'
 import { expect } from 'aegir/chai'
-import { pipe } from 'it-pipe'
+import drain from 'it-drain'
 import { pushable } from 'it-pushable'
+import { pEvent } from 'p-event'
 import { defaultConfig } from '../src/config.js'
 import { GoAwayCode } from '../src/frame.js'
-import { StreamState } from '../src/stream.js'
-import { sleep, testClientServer } from './util.js'
-import type { YamuxFixture } from './util.js'
+import { YamuxMuxer } from '../src/muxer.ts'
+import { StreamState, YamuxStream } from '../src/stream.js'
+import { sleep } from './util.js'
+import type { MultiaddrConnection } from '@libp2p/interface'
 import type { Pushable } from 'it-pushable'
-import type { Uint8ArrayList } from 'uint8arraylist'
 
 describe('stream', () => {
-  let client: YamuxFixture
-  let server: YamuxFixture
+  let inboundConnection: MultiaddrConnection
+  let outboundConnection: MultiaddrConnection
+  let client: YamuxMuxer
+  let server: YamuxMuxer
+
+  beforeEach(() => {
+    ([inboundConnection, outboundConnection] = multiaddrConnectionPair())
+    client = new YamuxMuxer(inboundConnection, {
+      maxEarlyStreams: 2000
+    })
+    server = new YamuxMuxer(outboundConnection, {
+      maxEarlyStreams: 2000
+    })
+  })
 
   afterEach(async () => {
-    if (client != null) {
-      await client.close()
-    }
-
-    if (server != null) {
-      await server.close()
-    }
+    await client?.close().catch(err => {
+      client.abort(err)
+    })
+    await server?.close().catch(err => {
+      server.abort(err)
+    })
   })
 
   it('test send data - small', async () => {
-    ({ client, server } = testClientServer({ initialStreamWindowSize: defaultConfig.initialStreamWindowSize }))
-    const { default: drain } = await import('it-drain')
+    const [
+      s1, c1
+    ] = await Promise.all([
+      pEvent<'stream', CustomEvent<YamuxStream>>(server, 'stream').then(evt => evt.detail),
+      client.createStream()
+    ])
 
-    const p = pushable()
-    const c1 = client.newStream()
-    await sleep(10)
+    await Promise.all([
+      Promise.resolve().then(async () => {
+        for (let i = 0; i < 10; i++) {
+          const sendMore = c1.send(new Uint8Array(256))
 
-    const s1 = server.streams[0]
-    const sendPipe = pipe(p, c1)
-    const recvPipe = pipe(s1, drain)
-    for (let i = 0; i < 10; i++) {
-      p.push(new Uint8Array(256))
-    }
-    p.end()
+          if (!sendMore) {
+            await pEvent(c1, 'drain')
+          }
+        }
 
-    await Promise.all([sendPipe, recvPipe])
+        await c1.close()
+      }),
+      drain(s1)
+    ])
 
     // the window capacities should have refilled via window updates as received data was consumed
-
-    expect(c1['sendWindowCapacity']).to.be.gte(defaultConfig.initialStreamWindowSize)
-
-    expect(s1['recvWindowCapacity']).to.be.gte(defaultConfig.initialStreamWindowSize)
+    expect(c1['sendWindowCapacity']).to.be.gte(defaultConfig.streamOptions.initialStreamWindowSize)
+    expect(s1['recvWindowCapacity']).to.be.gte(defaultConfig.streamOptions.initialStreamWindowSize)
   })
 
   it('test send data - large', async () => {
-    ({ client, server } = testClientServer({ initialStreamWindowSize: defaultConfig.initialStreamWindowSize }))
-    const { default: drain } = await import('it-drain')
+    const [
+      s1, c1
+    ] = await Promise.all([
+      pEvent<'stream', CustomEvent<YamuxStream>>(server, 'stream').then(evt => evt.detail),
+      client.createStream()
+    ])
 
-    const p = pushable()
-    const c1 = client.newStream()
-    await sleep(10)
+    await Promise.all([
+      Promise.resolve().then(async () => {
+        // amount of data is greater than initial window size
+        // and each payload is also greater than the max message size
+        // this will payload chunking and also waiting for window updates before
+        // continuing to send
+        for (let i = 0; i < 10; i++) {
+          const sendMore = c1.send(new Uint8Array(defaultConfig.streamOptions.initialStreamWindowSize))
 
-    const s1 = server.streams[0]
-    const sendPipe = pipe(p, c1)
-    const recvPipe = pipe(s1, drain)
-    // amount of data is greater than initial window size
-    // and each payload is also greater than the max message size
-    // this will payload chunking and also waiting for window updates before continuing to send
-    for (let i = 0; i < 10; i++) {
-      p.push(new Uint8Array(defaultConfig.initialStreamWindowSize))
-    }
-    p.end()
+          if (!sendMore) {
+            await pEvent(c1, 'drain')
+          }
+        }
 
-    await Promise.all([sendPipe, recvPipe])
+        await c1.close()
+      }),
+      drain(s1)
+    ])
+
     // the window capacities should have refilled via window updates as received data was consumed
-
-    expect(c1['sendWindowCapacity']).to.be.gte(defaultConfig.initialStreamWindowSize)
-
-    expect(s1['recvWindowCapacity']).to.be.gte(defaultConfig.initialStreamWindowSize)
+    expect(c1['sendWindowCapacity']).to.be.gte(defaultConfig.streamOptions.initialStreamWindowSize)
+    expect(s1['recvWindowCapacity']).to.be.gte(defaultConfig.streamOptions.initialStreamWindowSize)
   })
 
   it('test send data - large with increasing recv window size', async () => {
-    ({ client, server } = testClientServer({ initialStreamWindowSize: defaultConfig.initialStreamWindowSize }))
-    const { default: drain } = await import('it-drain')
+    const [
+      s1, c1
+    ] = await Promise.all([
+      pEvent<'stream', CustomEvent<YamuxStream>>(server, 'stream').then(evt => evt.detail),
+      client.createStream(),
+      server.ping()
+    ])
 
-    const p = pushable()
-    const c1 = client.newStream()
+    await Promise.all([
+      Promise.resolve().then(async () => {
+        // amount of data is greater than initial window size
+        // and each payload is also greater than the max message size
+        // this will payload chunking and also waiting for window updates before
+        // continuing to send
+        for (let i = 0; i < 10; i++) {
+          const sendMore = c1.send(new Uint8Array(defaultConfig.streamOptions.initialStreamWindowSize))
 
-    server.pauseWrite()
-    void server.ping()
-    await sleep(10)
-    server.unpauseWrite()
+          if (!sendMore) {
+            await pEvent(c1, 'drain')
+          }
+        }
+        await c1.close()
+      }),
+      drain(s1)
+    ])
 
-    const s1 = server.streams[0]
-    const sendPipe = pipe(p, c1)
-    const recvPipe = pipe(s1, drain)
-    // amount of data is greater than initial window size
-    // and each payload is also greater than the max message size
-    // this will payload chunking and also waiting for window updates before continuing to send
-    for (let i = 0; i < 10; i++) {
-      p.push(new Uint8Array(defaultConfig.initialStreamWindowSize))
-    }
-    p.end()
-
-    await Promise.all([sendPipe, recvPipe])
     // the window capacities should have refilled via window updates as received data was consumed
-
-    expect(c1['sendWindowCapacity']).to.be.gte(defaultConfig.initialStreamWindowSize)
-
-    expect(s1['recvWindowCapacity']).to.be.gte(defaultConfig.initialStreamWindowSize)
+    expect(c1['sendWindowCapacity']).to.be.gte(defaultConfig.streamOptions.initialStreamWindowSize)
+    expect(s1['recvWindowCapacity']).to.be.gte(defaultConfig.streamOptions.initialStreamWindowSize)
   })
 
   it('test many streams', async () => {
-    ({ client, server } = testClientServer())
     for (let i = 0; i < 1000; i++) {
-      client.newStream()
+      await client.createStream()
     }
     await sleep(100)
 
@@ -120,15 +141,16 @@ describe('stream', () => {
   })
 
   it('test many streams - ping pong', async () => {
-    ({ client, server } = testClientServer({
+    server.addEventListener('stream', (evt) => {
       // echo on incoming streams
-      onIncomingStream: (stream) => { void pipe(stream, stream) }
-    }))
+      pipe(evt.detail, evt.detail)
+    })
+
     const numStreams = 10
 
     const p: Array<Pushable<Uint8Array>> = []
     for (let i = 0; i < numStreams; i++) {
-      client.newStream()
+      client.createStream()
       p.push(pushable())
     }
     await sleep(100)
@@ -147,13 +169,28 @@ describe('stream', () => {
   })
 
   it('test stream close', async () => {
-    ({ client, server } = testClientServer())
+    server.addEventListener('stream', (evt) => {
+      // close incoming streams
+      evt.detail.close()
+    })
 
-    const c1 = client.newStream()
+    const c1 = await client.createStream()
     await c1.close()
-    await sleep(5)
+    await sleep(100)
 
     expect(c1.state).to.equal(StreamState.Finished)
+
+    expect(client.streams).to.be.empty()
+    expect(server.streams).to.be.empty()
+  })
+
+  it('test stream close write', async () => {
+    const c1 = await client.createStream()
+    await c1.close()
+    await sleep(100)
+
+    expect(c1.state).to.equal(StreamState.SYNSent)
+    expect(c1.writeStatus).to.equal('closed')
 
     const s1 = server.streams[0]
     expect(s1).to.not.be.undefined()
@@ -161,94 +198,80 @@ describe('stream', () => {
   })
 
   it('test stream close read', async () => {
-    ({ client, server } = testClientServer())
-
-    const c1 = client.newStream()
+    const c1 = await client.createStream()
     await c1.closeRead()
     await sleep(5)
 
     const s1 = server.streams[0]
     expect(s1).to.not.be.undefined()
-    expect(s1.readStatus).to.equal('ready')
-    expect(s1.writeStatus).to.equal('ready')
+    expect(s1.readStatus).to.equal('readable')
+    expect(s1.writeStatus).to.equal('writable')
   })
 
   it('test stream close write', async () => {
-    ({ client, server } = testClientServer())
-
-    const c1 = client.newStream()
-    await c1.closeWrite()
+    const c1 = await client.createStream()
+    await c1.close()
     await sleep(5)
 
-    expect(c1.readStatus).to.equal('ready')
+    expect(c1.readStatus).to.equal('readable')
     expect(c1.writeStatus).to.equal('closed')
 
     const s1 = server.streams[0]
     expect(s1).to.not.be.undefined()
-    expect(s1.readStatus).to.equal('closed')
-    expect(s1.writeStatus).to.equal('ready')
+    expect(s1.readStatus).to.equal('readable')
+    expect(s1.writeStatus).to.equal('writable')
   })
 
   it('test window overflow', async () => {
-    ({ client, server } = testClientServer({ maxMessageSize: defaultConfig.initialStreamWindowSize, initialStreamWindowSize: defaultConfig.initialStreamWindowSize }))
-    const { default: drain } = await import('it-drain')
+    const [
+      s1, c1
+    ] = await Promise.all([
+      pEvent<'stream', CustomEvent<YamuxStream>>(server, 'stream').then(evt => evt.detail),
+      client.createStream()
+    ])
 
-    const p = pushable()
-    const c1 = client.newStream()
-    await sleep(10)
+    await expect(
+      Promise.all([
+        (async () => {
+          const data = new Array(10).fill(new Uint8Array(s1['recvWindowCapacity'] * 2))
 
-    const s1 = server.streams[0]
-    const sendPipe = pipe(p, c1)
+          for (const buf of data) {
+            c1['maxMessageSize'] = s1['recvWindowCapacity'] * 2
+            c1['sendWindowCapacity'] = s1['recvWindowCapacity'] * 2
+            const sendMore = c1.send(buf)
 
-    const c1SendData = c1.sendData.bind(c1)
+            if (!sendMore) {
+              await pEvent(c1, 'drain')
+            }
+          }
 
-    c1.sendData = async (data: Uint8ArrayList): Promise<void> => {
-      await c1SendData(data)
-
-      c1['sendWindowCapacity'] = defaultConfig.initialStreamWindowSize * 10
-    }
-    p.push(new Uint8Array(defaultConfig.initialStreamWindowSize))
-    p.push(new Uint8Array(defaultConfig.initialStreamWindowSize))
-
-    await sleep(10)
-
-    const recvPipe = pipe(s1, drain)
-    p.end()
-
-    try {
-      await Promise.all([sendPipe, recvPipe])
-    } catch (e) {
-      expect(e).to.have.property('name', 'ReceiveWindowExceededError')
-    }
+          await c1.close()
+        })(),
+        drain(s1)
+      ])
+    ).to.eventually.be.rejected()
+      .with.property('name', 'ReceiveWindowExceededError')
 
     expect(client).to.have.property('remoteGoAway', GoAwayCode.ProtocolError)
     expect(server).to.have.property('localGoAway', GoAwayCode.ProtocolError)
   })
 
   it('test stream sink error', async () => {
-    ({ client, server } = testClientServer())
+    // make the 'drain' event slow to fire
+    // @ts-expect-error private fields
+    inboundConnection.local.delay = 1000
 
-    // don't let the server respond
-    server.pauseRead()
-
-    const p = pushable()
-    const c1 = client.newStream()
-
-    const sendPipe = pipe(p, c1)
+    const c1 = await client.createStream()
 
     // send more data than the window size, will trigger a wait
-    p.push(new Uint8Array(defaultConfig.initialStreamWindowSize))
-    p.push(new Uint8Array(defaultConfig.initialStreamWindowSize))
+    while (c1.send(new Uint8Array(defaultConfig.streamOptions.initialStreamWindowSize))) {
 
-    await sleep(10)
+    }
 
     // the client should fail to close gracefully because there is unsent data
     // that will never be sent
-    await client.close({
+    await expect(client.close({
       signal: AbortSignal.timeout(10)
-    })
-    p.end()
-
-    await sendPipe
+    })).to.eventually.be.rejected()
   })
 })

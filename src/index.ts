@@ -78,16 +78,13 @@
  */
 
 import { Yamux } from './muxer.js'
-import type { YamuxMuxerInit } from './muxer.js'
-import type { ComponentLogger, StreamMuxerFactory } from '@libp2p/interface'
+import type { YamuxMuxer, YamuxMuxerInit } from './muxer.js'
+import type { StreamMuxerFactory } from '@libp2p/interface'
 
-export { GoAwayCode, type FrameHeader, type FrameType } from './frame.js'
+export { GoAwayCode } from './frame.js'
+export type { FrameHeader, FrameType } from './frame.js'
 export type { YamuxMuxerInit }
 
-export interface YamuxMuxerComponents {
-  logger: ComponentLogger
-}
-
-export function yamux (init: YamuxMuxerInit = {}): (components: YamuxMuxerComponents) => StreamMuxerFactory {
-  return (components) => new Yamux(components, init)
+export function yamux (init: YamuxMuxerInit = {}): () => StreamMuxerFactory<YamuxMuxer> {
+  return () => new Yamux(init)
 }
