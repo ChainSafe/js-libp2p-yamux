@@ -1,26 +1,44 @@
-export class InvalidFrameError extends Error {
+import { GoAwayCode } from './frame.ts'
+
+export class ProtocolError extends Error {
+  static name = 'ProtocolError'
+
+  public reason: GoAwayCode
+
+  constructor (message: string, reason: GoAwayCode) {
+    super(message)
+    this.name = 'ProtocolError'
+    this.reason = reason
+  }
+}
+
+export function isProtocolError (err?: any): err is ProtocolError {
+  return err?.reason !== null
+}
+
+export class InvalidFrameError extends ProtocolError {
   static name = 'InvalidFrameError'
 
   constructor (message = 'The frame was invalid') {
-    super(message)
+    super(message, GoAwayCode.ProtocolError)
     this.name = 'InvalidFrameError'
   }
 }
 
-export class UnrequestedPingError extends Error {
-  static name = 'UnrequestedPingError'
+export class UnRequestedPingError extends ProtocolError {
+  static name = 'UnRequestedPingError'
 
-  constructor (message = 'Unrequested ping error') {
-    super(message)
-    this.name = 'UnrequestedPingError'
+  constructor (message = 'Un-requested ping error') {
+    super(message, GoAwayCode.ProtocolError)
+    this.name = 'UnRequestedPingError'
   }
 }
 
-export class NotMatchingPingError extends Error {
+export class NotMatchingPingError extends ProtocolError {
   static name = 'NotMatchingPingError'
 
-  constructor (message = 'Unrequested ping error') {
-    super(message)
+  constructor (message = 'Not matching ping error') {
+    super(message, GoAwayCode.ProtocolError)
     this.name = 'NotMatchingPingError'
   }
 }
@@ -34,38 +52,38 @@ export class InvalidStateError extends Error {
   }
 }
 
-export class StreamAlreadyExistsError extends Error {
+export class StreamAlreadyExistsError extends ProtocolError {
   static name = 'StreamAlreadyExistsError'
 
-  constructor (message = 'Strean already exists') {
-    super(message)
+  constructor (message = 'Stream already exists') {
+    super(message, GoAwayCode.ProtocolError)
     this.name = 'StreamAlreadyExistsError'
   }
 }
 
-export class DecodeInvalidVersionError extends Error {
+export class DecodeInvalidVersionError extends ProtocolError {
   static name = 'DecodeInvalidVersionError'
 
   constructor (message = 'Decode invalid version') {
-    super(message)
+    super(message, GoAwayCode.ProtocolError)
     this.name = 'DecodeInvalidVersionError'
   }
 }
 
-export class BothClientsError extends Error {
+export class BothClientsError extends ProtocolError {
   static name = 'BothClientsError'
 
   constructor (message = 'Both clients') {
-    super(message)
+    super(message, GoAwayCode.ProtocolError)
     this.name = 'BothClientsError'
   }
 }
 
-export class ReceiveWindowExceededError extends Error {
+export class ReceiveWindowExceededError extends ProtocolError {
   static name = 'ReceiveWindowExceededError'
 
   constructor (message = 'Receive window exceeded') {
-    super(message)
+    super(message, GoAwayCode.ProtocolError)
     this.name = 'ReceiveWindowExceededError'
   }
 }

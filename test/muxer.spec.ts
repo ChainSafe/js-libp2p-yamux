@@ -1,14 +1,22 @@
 /* eslint-env mocha */
 
+import { multiaddrConnectionPair } from '@libp2p/utils'
 import { expect } from 'aegir/chai'
-import { duplexPair } from 'it-pair/duplex'
-import { pipe } from 'it-pipe'
-import { type Uint8ArrayList } from 'uint8arraylist'
-import { sleep, testClientServer, testYamuxMuxer, type YamuxFixture } from './util.js'
+import { YamuxMuxer } from '../src/muxer.ts'
+import { sleep } from './util.js'
+import type { MultiaddrConnection } from '@libp2p/interface'
 
 describe('muxer', () => {
-  let client: YamuxFixture
-  let server: YamuxFixture
+  let client: YamuxMuxer
+  let server: YamuxMuxer
+  let outboundConnection: MultiaddrConnection
+  let inboundConnection: MultiaddrConnection
+
+  beforeEach(() => {
+    ([outboundConnection, inboundConnection] = multiaddrConnectionPair())
+    client = new YamuxMuxer(outboundConnection)
+    server = new YamuxMuxer(inboundConnection)
+  })
 
   afterEach(async () => {
     if (client != null) {
@@ -21,107 +29,90 @@ describe('muxer', () => {
   })
 
   it('test repeated close', async () => {
-    const client1 = testYamuxMuxer('libp2p:yamux:1', true)
     // inspect logs to ensure its only closed once
-    await client1.close()
-    await client1.close()
-    await client1.close()
+    await client.close()
+    await client.close()
+    await client.close()
   })
 
   it('test client<->client', async () => {
-    const pair = duplexPair<Uint8Array | Uint8ArrayList>()
-    const client1 = testYamuxMuxer('libp2p:yamux:1', true)
-    const client2 = testYamuxMuxer('libp2p:yamux:2', true)
-    void pipe(pair[0], client1, pair[0])
-    void pipe(pair[1], client2, pair[1])
-    client1.newStream()
-    client2.newStream()
+    server['client'] = true
+
+    await client.createStream().catch(() => {})
+    await server.createStream().catch(() => {})
 
     await sleep(20)
 
-    expect(client1.isClosed()).to.equal(true)
-    expect(client2.isClosed()).to.equal(true)
+    expect(client).to.have.property('status', 'closed')
+    expect(server).to.have.property('status', 'closed')
   })
 
   it('test server<->server', async () => {
-    const pair = duplexPair<Uint8Array | Uint8ArrayList>()
-    const client1 = testYamuxMuxer('libp2p:yamux:1', false)
-    const client2 = testYamuxMuxer('libp2p:yamux:2', false)
-    void pipe(pair[0], client1, pair[0])
-    void pipe(pair[1], client2, pair[1])
-    client1.newStream()
-    client2.newStream()
+    client['client'] = false
+
+    await client.createStream().catch(() => {})
+    await server.createStream().catch(() => {})
 
     await sleep(20)
 
-    expect(client1.isClosed()).to.equal(true)
-    expect(client2.isClosed()).to.equal(true)
+    expect(client).to.have.property('status', 'closed')
+    expect(server).to.have.property('status', 'closed')
   })
 
   it('test ping', async () => {
-    ({ client, server } = testClientServer())
-
-    server.pauseRead()
+    inboundConnection.pause()
     const clientRTT = client.ping()
     await sleep(10)
-    server.unpauseRead()
-    expect(await clientRTT).to.not.equal(0)
+    inboundConnection.resume()
+    await expect(clientRTT).to.eventually.not.equal(0)
 
-    server.pauseWrite()
+    outboundConnection.pause()
     const serverRTT = server.ping()
     await sleep(10)
-    server.unpauseWrite()
+    outboundConnection.resume()
     expect(await serverRTT).to.not.equal(0)
   })
 
   it('test multiple simultaneous pings', async () => {
-    ({ client, server } = testClientServer())
-
-    client.pauseWrite()
+    inboundConnection.pause()
     const promise = [
       client.ping(),
       client.ping(),
       client.ping()
     ]
     await sleep(10)
-    client.unpauseWrite()
+    inboundConnection.resume()
 
     const clientRTTs = await Promise.all(promise)
     expect(clientRTTs[0]).to.not.equal(0)
     expect(clientRTTs[0]).to.equal(clientRTTs[1])
     expect(clientRTTs[1]).to.equal(clientRTTs[2])
 
-    // eslint-disable-next-line @typescript-eslint/dot-notation
     expect(client['nextPingID']).to.equal(1)
 
     await client.close()
   })
 
   it('test go away', async () => {
-    ({ client, server } = testClientServer())
     await client.close()
 
-    expect(() => {
-      client.newStream()
-    }).to.throw().with.property('name', 'MuxerClosedError', 'should not be able to open a stream after close')
+    await expect(client.createStream()).to.eventually.be.rejected()
+      .with.property('name', 'MuxerClosedError', 'should not be able to open a stream after close')
   })
 
   it('test keep alive', async () => {
-    ({ client, server } = testClientServer({ enableKeepAlive: true, keepAliveInterval: 10 }))
+    client['keepAlive']?.setInterval(10)
 
     await sleep(1000)
 
-    // eslint-disable-next-line @typescript-eslint/dot-notation
     expect(client['nextPingID']).to.be.gt(2)
-    await client.close()
-    await server.close()
   })
 
   it('test max inbound streams', async () => {
-    ({ client, server } = testClientServer({ maxInboundStreams: 1 }))
+    server['maxInboundStreams'] = 1
 
-    client.newStream()
-    client.newStream()
+    await client.createStream()
+    await client.createStream()
     await sleep(10)
 
     expect(server.streams.length).to.equal(1)
@@ -129,13 +120,13 @@ describe('muxer', () => {
   })
 
   it('test max outbound streams', async () => {
-    ({ client, server } = testClientServer({ maxOutboundStreams: 1 }))
+    client['maxOutboundStreams'] = 1
 
-    client.newStream()
+    await client.createStream()
     await sleep(10)
 
     try {
-      client.newStream()
+      await client.createStream()
       expect.fail('stream creation should fail if exceeding maxOutboundStreams')
     } catch (e) {
       expect(server.streams.length).to.equal(1)

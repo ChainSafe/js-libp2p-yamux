@@ -1,31 +1,43 @@
-import { InvalidParametersError, MuxerClosedError, TooManyOutboundProtocolStreamsError, serviceCapabilities, setMaxListeners } from '@libp2p/interface'
-import { getIterator } from 'get-iterator'
-import { pushable, type Pushable } from 'it-pushable'
+import { InvalidParametersError, MuxerClosedError, TooManyOutboundProtocolStreamsError, serviceCapabilities } from '@libp2p/interface'
+import { AbstractStreamMuxer, repeatingTask } from '@libp2p/utils'
+import { raceSignal } from 'race-signal'
 import { Uint8ArrayList } from 'uint8arraylist'
-import { type Config, defaultConfig, verifyConfig } from './config.js'
-import { PROTOCOL_ERRORS } from './constants.js'
+import { defaultConfig, verifyConfig } from './config.js'
 import { Decoder } from './decode.js'
 import { encodeHeader } from './encode.js'
-import { InvalidFrameError, NotMatchingPingError, UnrequestedPingError } from './errors.js'
-import { Flag, type FrameHeader, FrameType, GoAwayCode } from './frame.js'
+import { InvalidFrameError, isProtocolError, NotMatchingPingError, UnRequestedPingError } from './errors.js'
+import { Flag, FrameType, GoAwayCode } from './frame.js'
 import { StreamState, YamuxStream } from './stream.js'
-import type { YamuxMuxerComponents } from './index.js'
-import type { AbortOptions, ComponentLogger, Logger, Stream, StreamMuxer, StreamMuxerFactory, StreamMuxerInit } from '@libp2p/interface'
-import type { Sink, Source } from 'it-stream-types'
+import type { Config } from './config.js'
+import type { Frame } from './decode.js'
+import type { FrameHeader } from './frame.js'
+import type { AbortOptions, MessageStream, StreamMuxerFactory } from '@libp2p/interface'
+import type { RepeatingTask } from '@libp2p/utils'
+
+function debugFrame (header: FrameHeader): any {
+  return {
+    type: FrameType[header.type],
+    flags: [
+      (header.flag & Flag.SYN) === Flag.SYN ? 'SYN' : undefined,
+      (header.flag & Flag.ACK) === Flag.ACK ? 'ACK' : undefined,
+      (header.flag & Flag.FIN) === Flag.FIN ? 'FIN' : undefined,
+      (header.flag & Flag.RST) === Flag.RST ? 'RST' : undefined
+    ].filter(Boolean),
+    streamID: header.streamID,
+    length: header.length
+  }
+}
 
 const YAMUX_PROTOCOL_ID = '/yamux/1.0.0'
-const CLOSE_TIMEOUT = 500
 
-export interface YamuxMuxerInit extends StreamMuxerInit, Partial<Config> {
+export interface YamuxMuxerInit extends Partial<Config> {
 }
 
 export class Yamux implements StreamMuxerFactory {
   protocol = YAMUX_PROTOCOL_ID
-  private readonly _components: YamuxMuxerComponents
-  private readonly _init: YamuxMuxerInit
+  private readonly _init: Partial<Config>
 
-  constructor (components: YamuxMuxerComponents, init: YamuxMuxerInit = {}) {
-    this._components = components
+  constructor (init: Partial<Config> = {}) {
     this._init = init
   }
 
@@ -35,10 +47,9 @@ export class Yamux implements StreamMuxerFactory {
     '@libp2p/stream-multiplexing'
   ]
 
-  createStreamMuxer (init?: YamuxMuxerInit): YamuxMuxer {
-    return new YamuxMuxer(this._components, {
-      ...this._init,
-      ...init
+  createStreamMuxer (maConn: MessageStream): YamuxMuxer {
+    return new YamuxMuxer(maConn, {
+      ...this._init
     })
   }
 }
@@ -47,32 +58,24 @@ export interface CloseOptions extends AbortOptions {
   reason?: GoAwayCode
 }
 
-export class YamuxMuxer implements StreamMuxer {
-  protocol = YAMUX_PROTOCOL_ID
-  source: Pushable<Uint8ArrayList | Uint8Array>
-  sink: Sink<Source<Uint8ArrayList | Uint8Array>, Promise<void>>
+export interface ActivePing extends PromiseWithResolvers<number> {
+  id: number
+  start: number
+}
 
-  private readonly config: Config
-  private readonly log?: Logger
-  private readonly logger: ComponentLogger
-
-  /** Used to close the muxer from either the sink or source */
-  private readonly closeController: AbortController
-
+export class YamuxMuxer extends AbstractStreamMuxer<YamuxStream> {
   /** The next stream id to be used when initiating a new stream */
   private nextStreamID: number
-  /** Primary stream mapping, streamID => stream */
-  private readonly _streams: Map<number, YamuxStream>
 
   /** The next ping id to be used when pinging */
   private nextPingID: number
   /** Tracking info for the currently active ping */
-  private activePing?: { id: number, promise: Promise<void>, resolve(): void }
+  private activePing?: ActivePing
   /** Round trip time */
   private rtt: number
 
   /** True if client, false if server */
-  private readonly client: boolean
+  private client: boolean
 
   private localGoAway?: GoAwayCode
   private remoteGoAway?: GoAwayCode
@@ -82,85 +85,30 @@ export class YamuxMuxer implements StreamMuxer {
   /** Number of tracked outbound streams */
   private numOutboundStreams: number
 
-  private readonly onIncomingStream?: (stream: Stream) => void
-  private readonly onStreamEnd?: (stream: Stream) => void
+  private decoder: Decoder
+  private keepAlive?: RepeatingTask
 
-  constructor (components: YamuxMuxerComponents, init: YamuxMuxerInit) {
-    this.client = init.direction === 'outbound'
-    this.config = { ...defaultConfig, ...init }
-    this.logger = components.logger
-    this.log = this.logger.forComponent('libp2p:yamux')
-    verifyConfig(this.config)
+  private enableKeepAlive: boolean
+  private keepAliveInterval: number
+  private maxInboundStreams: number
+  private maxOutboundStreams: number
 
-    this.closeController = new AbortController()
-    setMaxListeners(Infinity, this.closeController.signal)
-
-    this.onIncomingStream = init.onIncomingStream
-    this.onStreamEnd = init.onStreamEnd
-
-    this._streams = new Map()
-
-    this.source = pushable({
-      onEnd: (): void => {
-        this.log?.trace('muxer source ended')
-
-        this._streams.forEach(stream => {
-          stream.destroy()
-        })
-      }
+  constructor (maConn: MessageStream, init: YamuxMuxerInit = {}) {
+    super(maConn, {
+      ...init,
+      protocol: YAMUX_PROTOCOL_ID,
+      name: 'yamux'
     })
 
-    this.sink = async (source: Source<Uint8ArrayList | Uint8Array>): Promise<void> => {
-      const shutDownListener = (): void => {
-        const iterator = getIterator(source)
+    this.client = maConn.direction === 'outbound'
+    verifyConfig(init)
 
-        if (iterator.return != null) {
-          const res = iterator.return()
+    this.enableKeepAlive = init.enableKeepAlive ?? defaultConfig.enableKeepAlive
+    this.keepAliveInterval = init.keepAliveInterval ?? defaultConfig.keepAliveInterval
+    this.maxInboundStreams = init.maxInboundStreams ?? defaultConfig.maxInboundStreams
+    this.maxOutboundStreams = init.maxOutboundStreams ?? defaultConfig.maxOutboundStreams
 
-          if (isPromise(res)) {
-            res.catch(err => {
-              this.log?.('could not cause sink source to return', err)
-            })
-          }
-        }
-      }
-
-      let reason, error
-      try {
-        const decoder = new Decoder(source)
-
-        try {
-          this.closeController.signal.addEventListener('abort', shutDownListener)
-
-          for await (const frame of decoder.emitFrames()) {
-            await this.handleFrame(frame.header, frame.readData)
-          }
-        } finally {
-          this.closeController.signal.removeEventListener('abort', shutDownListener)
-        }
-
-        reason = GoAwayCode.NormalTermination
-      } catch (err: any) {
-        // either a protocol or internal error
-        if (PROTOCOL_ERRORS.has(err.name)) {
-          this.log?.error('protocol error in sink', err)
-          reason = GoAwayCode.ProtocolError
-        } else {
-          this.log?.error('internal error in sink', err)
-          reason = GoAwayCode.InternalError
-        }
-
-        error = err as Error
-      }
-
-      this.log?.trace('muxer sink ended')
-
-      if (error != null) {
-        this.abort(error, reason)
-      } else {
-        await this.close({ reason })
-      }
-    }
+    this.decoder = new Decoder()
 
     this.numInboundStreams = 0
     this.numOutboundStreams = 0
@@ -171,24 +119,36 @@ export class YamuxMuxer implements StreamMuxer {
     this.nextPingID = 0
     this.rtt = -1
 
-    this.log?.trace('muxer created')
+    this.log.trace('muxer created')
 
-    if (this.config.enableKeepAlive) {
-      this.keepAliveLoop().catch(e => this.log?.error('keepalive error: %s', e))
+    if (this.enableKeepAlive) {
+      this.log.trace('muxer keepalive enabled interval=%s', this.keepAliveInterval)
+      this.keepAlive = repeatingTask(async (options) => {
+        try {
+          await this.ping(options)
+        } catch (err: any) {
+          // TODO: should abort here?
+          this.log.error('ping error: %s', err)
+        }
+      }, this.keepAliveInterval, {
+        // send an initial ping to establish RTT
+        runImmediately: true
+      })
+      this.keepAlive.start()
     }
-
-    // send an initial ping to establish RTT
-    this.ping().catch(e => this.log?.error('ping error: %s', e))
   }
 
-  get streams (): YamuxStream[] {
-    return Array.from(this._streams.values())
+  onData (buf: Uint8Array | Uint8ArrayList): void {
+    for (const frame of this.decoder.emitFrames(buf)) {
+      this.handleFrame(frame)
+    }
   }
 
-  newStream (name?: string | undefined): YamuxStream {
+  onCreateStream (): YamuxStream {
     if (this.remoteGoAway !== undefined) {
       throw new MuxerClosedError('Muxer closed remotely')
     }
+
     if (this.localGoAway !== undefined) {
       throw new MuxerClosedError('Muxer closed locally')
     }
@@ -197,19 +157,23 @@ export class YamuxMuxer implements StreamMuxer {
     this.nextStreamID += 2
 
     // check against our configured maximum number of outbound streams
-    if (this.numOutboundStreams >= this.config.maxOutboundStreams) {
+    if (this.numOutboundStreams >= this.maxOutboundStreams) {
       throw new TooManyOutboundProtocolStreamsError('max outbound streams exceeded')
     }
 
-    this.log?.trace('new outgoing stream id=%s', id)
+    this.log.trace('new outgoing stream id=%s', id)
 
-    const stream = this._newStream(id, name, StreamState.Init, 'outbound')
-    this._streams.set(id, stream)
+    const stream = this._newStream(id, StreamState.Init, 'outbound')
 
     this.numOutboundStreams++
 
-    // send a window update to open the stream on the receiver end
-    stream.sendWindowUpdate()
+    // send a window update to open the stream on the receiver end. do this in a
+    // microtask so the stream gets added to the streams array by the superclass
+    // before we send the SYN flag, otherwise we create a race condition whereby
+    // we can receive the ACK before the stream is added to the streams list
+    queueMicrotask(() => {
+      stream.sendWindowUpdate()
+    })
 
     return stream
   }
@@ -222,7 +186,7 @@ export class YamuxMuxer implements StreamMuxer {
    *
    * @returns the round-trip-time in milliseconds
    */
-  async ping (): Promise<number> {
+  async ping (options?: AbortOptions): Promise<number> {
     if (this.remoteGoAway !== undefined) {
       throw new MuxerClosedError('Muxer closed remotely')
     }
@@ -230,42 +194,27 @@ export class YamuxMuxer implements StreamMuxer {
       throw new MuxerClosedError('Muxer closed locally')
     }
 
-    // An active ping does not yet exist, handle the process here
-    if (this.activePing === undefined) {
-      // create active ping
-      let _resolve = (): void => {}
-      this.activePing = {
-        id: this.nextPingID++,
-        // this promise awaits resolution or the close controller aborting
-        promise: new Promise<void>((resolve, reject) => {
-          const closed = (): void => {
-            reject(new MuxerClosedError('Muxer closed locally'))
-          }
-          this.closeController.signal.addEventListener('abort', closed, { once: true })
-          _resolve = (): void => {
-            this.closeController.signal.removeEventListener('abort', closed)
-            resolve()
-          }
-        }),
-        resolve: _resolve
-      }
-      // send ping
-      const start = Date.now()
-      this.sendPing(this.activePing.id)
-      // await pong
-      try {
-        await this.activePing.promise
-      } finally {
-        // clean-up active ping
-        delete this.activePing
-      }
-      // update rtt
-      const end = Date.now()
-      this.rtt = end - start
-    } else {
+    if (this.activePing != null) {
       // an active ping is already in progress, piggyback off that
-      await this.activePing.promise
+      return raceSignal(this.activePing.promise, options?.signal)
     }
+
+    // An active ping does not yet exist, handle the process here
+    // create active ping
+    this.activePing = Object.assign(Promise.withResolvers<number>(), {
+      id: this.nextPingID++,
+      start: Date.now()
+    })
+    // send ping
+    this.sendPing(this.activePing.id)
+    // await pong
+    try {
+      this.rtt = await raceSignal(this.activePing.promise, options?.signal)
+    } finally {
+      // clean-up active ping
+      this.activePing = undefined
+    }
+
     return this.rtt
   }
 
@@ -284,95 +233,79 @@ export class YamuxMuxer implements StreamMuxer {
    * Close the muxer
    */
   async close (options: CloseOptions = {}): Promise<void> {
-    if (this.closeController.signal.aborted) {
+    if (this.status !== 'open') {
       // already closed
       return
-    }
-
-    const reason = options?.reason ?? GoAwayCode.NormalTermination
-
-    this.log?.trace('muxer close reason=%s', reason)
-
-    if (options.signal == null) {
-      const signal = AbortSignal.timeout(CLOSE_TIMEOUT)
-      setMaxListeners(Infinity, signal)
-
-      options = {
-        ...options,
-        signal
-      }
     }
 
     try {
-      await Promise.all(
-        [...this._streams.values()].map(async s => s.close(options))
-      )
+      const reason = options?.reason ?? GoAwayCode.NormalTermination
+
+      this.log.trace('muxer close reason=%s', GoAwayCode[reason])
+
+      await super.close(options)
 
       // send reason to the other side, allow the other side to close gracefully
       this.sendGoAway(reason)
-
-      this._closeMuxer()
-    } catch (err: any) {
-      this.abort(err)
+    } finally {
+      this.keepAlive?.stop()
     }
   }
 
-  abort (err: Error, reason?: GoAwayCode): void {
-    if (this.closeController.signal.aborted) {
+  abort (err: Error): void {
+    if (this.status !== 'open') {
       // already closed
       return
     }
 
-    reason = reason ?? GoAwayCode.InternalError
+    try {
+      super.abort(err)
 
-    // If reason was provided, use that, otherwise use the presence of `err` to determine the reason
-    this.log?.error('muxer abort reason=%s error=%s', reason, err)
+      let reason = GoAwayCode.InternalError
 
-    // Abort all underlying streams
-    for (const stream of this._streams.values()) {
-      stream.abort(err)
+      if (isProtocolError(err)) {
+        reason = err.reason
+      }
+
+      // If reason was provided, use that, otherwise use the presence of `err` to determine the reason
+      this.log.error('muxer abort reason=%s error=%s', reason, err)
+
+      // send reason to the other side, allow the other side to close gracefully
+      this.sendGoAway(reason)
+    } finally {
+      this.keepAlive?.stop()
     }
-
-    // send reason to the other side, allow the other side to close gracefully
-    this.sendGoAway(reason)
-
-    this._closeMuxer()
   }
 
-  isClosed (): boolean {
-    return this.closeController.signal.aborted
-  }
-
-  /**
-   * Called when either the local or remote shuts down the muxer
-   */
-  private _closeMuxer (): void {
-    // stop the sink and any other processes
-    this.closeController.abort()
-
-    // stop the source
-    this.source.end()
+  onTransportClosed (): void {
+    try {
+      super.onTransportClosed()
+    } finally {
+      this.keepAlive?.stop()
+    }
   }
 
   /** Create a new stream */
-  private _newStream (id: number, name: string | undefined, state: StreamState, direction: 'inbound' | 'outbound'): YamuxStream {
-    if (this._streams.get(id) != null) {
+  private _newStream (streamId: number, state: StreamState, direction: 'inbound' | 'outbound'): YamuxStream {
+    if (this.streams.find(s => s.streamId === streamId) != null) {
       throw new InvalidParametersError('Stream already exists with that id')
     }
 
     const stream = new YamuxStream({
-      id: id.toString(),
-      name,
+      ...this.streamOptions,
+      id: `${streamId}`,
+      streamId,
       state,
       direction,
       sendFrame: this.sendFrame.bind(this),
-      onEnd: () => {
-        this.closeStream(id)
-        this.onStreamEnd?.(stream)
-      },
-      log: this.logger.forComponent(`libp2p:yamux:${direction}:${id}`),
-      config: this.config,
+      log: this.log.newScope(`${direction}:${streamId}`),
       getRTT: this.getRTT.bind(this)
+    })
+
+    stream.addEventListener('close', () => {
+      this.closeStream(streamId)
+    }, {
+      once: true
     })
 
     return stream
@@ -388,42 +321,21 @@ export class YamuxMuxer implements StreamMuxer {
     } else {
       this.numOutboundStreams--
     }
-    this._streams.delete(id)
   }
 
-  private async keepAliveLoop (): Promise<void> {
-    const abortPromise = new Promise((_resolve, reject) => { this.closeController.signal.addEventListener('abort', reject, { once: true }) })
-    this.log?.trace('muxer keepalive enabled interval=%s', this.config.keepAliveInterval)
-    while (true) {
-      let timeoutId
-      try {
-        await Promise.race([
-          abortPromise,
-          new Promise((resolve) => {
-            timeoutId = setTimeout(resolve, this.config.keepAliveInterval)
-          })
-        ])
-        this.ping().catch(e => this.log?.error('ping error: %s', e))
-      } catch (e) {
-        // closed
-        clearInterval(timeoutId)
-        return
-      }
-    }
-  }
-
-  private async handleFrame (header: FrameHeader, readData?: () => Promise<Uint8ArrayList>): Promise<void> {
+  private handleFrame (frame: Frame): void {
     const {
       streamID,
       type,
       length
-    } = header
-    this.log?.trace('received frame %o', header)
+    } = frame.header
+
+    this.log.trace('received frame %o', debugFrame(frame.header))
 
     if (streamID === 0) {
       switch (type) {
         case FrameType.Ping:
-        { this.handlePing(header); return }
+        { this.handlePing(frame.header); return }
         case FrameType.GoAway:
         { this.handleGoAway(length); return }
         default:
@@ -431,10 +343,10 @@ export class YamuxMuxer implements StreamMuxer {
           throw new InvalidFrameError('Invalid frame type')
       }
     } else {
-      switch (header.type) {
+      switch (frame.header.type) {
         case FrameType.Data:
         case FrameType.WindowUpdate:
-        { await this.handleStreamMessage(header, readData); return }
+        { this.handleStreamMessage(frame); return }
         default:
           // Invalid state
           throw new InvalidFrameError('Invalid frame type')
@@ -445,10 +357,10 @@ export class YamuxMuxer implements StreamMuxer {
   private handlePing (header: FrameHeader): void {
     // If the ping  is initiated by the sender, send a response
     if (header.flag === Flag.SYN) {
-      this.log?.trace('received ping request pingId=%s', header.length)
+      this.log.trace('received ping request pingId=%s', header.length)
       this.sendPing(header.length, Flag.ACK)
     } else if (header.flag === Flag.ACK) {
-      this.log?.trace('received ping response pingId=%s', header.length)
+      this.log.trace('received ping response pingId=%s', header.length)
       this.handlePingResponse(header.length)
     } else {
       // Invalid state
@@ -459,7 +371,7 @@ export class YamuxMuxer implements StreamMuxer {
   private handlePingResponse (pingId: number): void {
     if (this.activePing === undefined) {
       // this ping was not requested
-      throw new UnrequestedPingError('ping not requested')
+      throw new UnRequestedPingError('ping not requested')
     }
     if (this.activePing.id !== pingId) {
       // this ping doesn't match our active ping request
@@ -467,53 +379,41 @@ export class YamuxMuxer implements StreamMuxer {
     }
 
     // valid ping response
-    this.activePing.resolve()
+    this.activePing.resolve(Date.now() - this.activePing.start)
   }
 
   private handleGoAway (reason: GoAwayCode): void {
-    this.log?.trace('received GoAway reason=%s', GoAwayCode[reason] ?? 'unknown')
+    this.log.trace('received GoAway reason=%s', GoAwayCode[reason] ?? 'unknown')
     this.remoteGoAway = reason
 
-    // If the other side is friendly, they would have already closed all streams before sending a GoAway
-    // In case they weren't, reset all streams
-    for (const stream of this._streams.values()) {
-      stream.reset()
+    if (reason === GoAwayCode.NormalTermination) {
+      this.onTransportClosed()
+    } else {
+      // reset any streams that are still open and close the muxer
+      this.abort(new Error('Remote sent GoAway'))
     }
-
-    this._closeMuxer()
   }
 
-  private async handleStreamMessage (header: FrameHeader, readData?: () => Promise<Uint8ArrayList>): Promise<void> {
-    const { streamID, flag, type } = header
+  private handleStreamMessage (frame: Frame): void {
+    const { streamID, flag, type } = frame.header
 
     if ((flag & Flag.SYN) === Flag.SYN) {
       this.incomingStream(streamID)
     }
 
-    const stream = this._streams.get(streamID)
+    const stream = this.streams.find(s => s.streamId === streamID)
     if (stream === undefined) {
-      if (type === FrameType.Data) {
-        this.log?.('discarding data for stream id=%s', streamID)
-        if (readData === undefined) {
-          throw new Error('unreachable')
-        }
-        await readData()
-      } else {
-        this.log?.trace('frame for missing stream id=%s', streamID)
-      }
+      this.log.trace('frame for missing stream id=%s', streamID)
+
       return
     }
 
     switch (type) {
       case FrameType.WindowUpdate: {
-        stream.handleWindowUpdate(header); return
+        stream.handleWindowUpdate(frame); return
       }
       case FrameType.Data: {
-        if (readData === undefined) {
-          throw new Error('unreachable')
-        }
-
-        await stream.handleData(header, readData); return
+        stream.handleData(frame); return
       }
       default:
         throw new Error('unreachable')
@@ -524,11 +424,11 @@ export class YamuxMuxer implements StreamMuxer {
     if (this.client !== (id % 2 === 0)) {
       throw new InvalidParametersError('Both endpoints are clients')
     }
-    if (this._streams.has(id)) {
+    if (this.streams.find(s => s.streamId === id)) {
       return
     }
 
-    this.log?.trace('new incoming stream id=%s', id)
+    this.log.trace('new incoming stream id=%s', id)
 
     if (this.localGoAway !== undefined) {
       // reject (reset) immediately if we are doing a go away
@@ -537,49 +437,54 @@ export class YamuxMuxer implements StreamMuxer {
         flag: Flag.RST,
         streamID: id,
         length: 0
-      }); return
+      })
+      return
     }
 
     // check against our configured maximum number of inbound streams
-    if (this.numInboundStreams >= this.config.maxInboundStreams) {
-      this.log?.('maxIncomingStreams exceeded, forcing stream reset')
+    if (this.numInboundStreams >= this.maxInboundStreams) {
+      this.log('maxIncomingStreams exceeded, forcing stream reset')
       this.sendFrame({
         type: FrameType.WindowUpdate,
         flag: Flag.RST,
         streamID: id,
         length: 0
-      }); return
+      })
+      return
     }
 
     // allocate a new stream
-    const stream = this._newStream(id, undefined, StreamState.SYNReceived, 'inbound')
+    const stream = this._newStream(id, StreamState.SYNReceived, 'inbound')
 
     this.numInboundStreams++
-    // the stream should now be tracked
-    this._streams.set(id, stream)
 
-    this.onIncomingStream?.(stream)
+    // the stream should now be tracked
+    this.onRemoteStream(stream)
   }
 
-  private sendFrame (header: FrameHeader, data?: Uint8ArrayList): void {
-    this.log?.trace('sending frame %o', header)
+  private sendFrame (header: FrameHeader, data?: Uint8ArrayList): boolean {
+    let encoded: Uint8Array | Uint8ArrayList
+
     if (header.type === FrameType.Data) {
-      if (data === undefined) {
+      if (data == null) {
         throw new InvalidFrameError('Invalid frame')
       }
-      this.source.push(
-        new Uint8ArrayList(encodeHeader(header), data)
-      )
+
+      encoded = new Uint8ArrayList(encodeHeader(header), data)
     } else {
-      this.source.push(encodeHeader(header))
+      encoded = encodeHeader(header)
     }
+
+    this.log.trace('sending frame %o', debugFrame(header))
+
+    return this.send(encoded)
   }
 
   private sendPing (pingId: number, flag: Flag = Flag.SYN): void {
     if (flag === Flag.SYN) {
-      this.log?.trace('sending ping request pingId=%s', pingId)
+      this.log.trace('sending ping request pingId=%s', pingId)
     } else {
-      this.log?.trace('sending ping response pingId=%s', pingId)
+      this.log.trace('sending ping response pingId=%s', pingId)
     }
     this.sendFrame({
       type: FrameType.Ping,
@@ -590,7 +495,7 @@ export class YamuxMuxer implements StreamMuxer {
   }
 
   private sendGoAway (reason: GoAwayCode = GoAwayCode.NormalTermination): void {
-    this.log?.('sending GoAway reason=%s', GoAwayCode[reason])
+    this.log('sending GoAway reason=%s', GoAwayCode[reason])
     this.localGoAway = reason
     this.sendFrame({
       type: FrameType.GoAway,
@@ -599,8 +504,4 @@ export class YamuxMuxer implements StreamMuxer {
       length: reason
     })
   }
-}
-
-function isPromise <T = unknown> (thing: any): thing is Promise<T> {
-  return thing != null && typeof thing.then === 'function'
 }

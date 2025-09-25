@@ -1,12 +1,13 @@
-import { AbortError } from '@libp2p/interface'
-import { AbstractStream, type AbstractStreamInit } from '@libp2p/utils/abstract-stream'
-import each from 'it-foreach'
-import { INITIAL_STREAM_WINDOW } from './constants.js'
-import { ReceiveWindowExceededError } from './errors.js'
-import { Flag, type FrameHeader, FrameType, HEADER_LENGTH } from './frame.js'
-import type { Config } from './config.js'
+import { AbstractStream } from '@libp2p/utils'
+import { Uint8ArrayList } from 'uint8arraylist'
+import { INITIAL_STREAM_WINDOW, MAX_STREAM_WINDOW } from './constants.js'
+import { isDataFrame } from './decode.ts'
+import { InvalidFrameError, ReceiveWindowExceededError } from './errors.js'
+import { Flag, FrameType, HEADER_LENGTH } from './frame.js'
+import type { Frame } from './decode.ts'
+import type { FrameHeader } from './frame.js'
 import type { AbortOptions } from '@libp2p/interface'
-import type { Uint8ArrayList } from 'uint8arraylist'
+import type { AbstractStreamInit, SendResult } from '@libp2p/utils'
 
 export enum StreamState {
   Init,
@@ -14,33 +15,31 @@ export enum StreamState {
   SYNReceived,
   Established,
   Finished,
+  Paused
 }
 
 export interface YamuxStreamInit extends AbstractStreamInit {
-  name?: string
-  sendFrame(header: FrameHeader, body?: Uint8ArrayList): void
+  streamId: number
+  sendFrame(header: FrameHeader, body?: Uint8ArrayList): boolean
   getRTT(): number
-  config: Config
+  initialStreamWindowSize?: number
+  maxMessageSize?: number
+  maxStreamWindowSize?: number
   state: StreamState
 }
 
 /** YamuxStream is used to represent a logical stream within a session */
 export class YamuxStream extends AbstractStream {
-  name?: string
+  streamId: number
   state: StreamState
-
-  private readonly config: Config
-  private readonly _id: number
 
   /** The number of available bytes to send */
   private sendWindowCapacity: number
-  /** Callback to notify that the sendWindowCapacity has been updated */
-  private sendWindowCapacityUpdate?: () => void
-
   /** The number of bytes available to receive in a full window */
   private recvWindow: number
   /** The number of available bytes to receive */
   private recvWindowCapacity: number
+  private maxStreamWindowSize: number
 
   /**
    * An 'epoch' is the time it takes to process and read data
@@ -50,79 +49,78 @@ export class YamuxStream extends AbstractStream {
   private epochStart: number
   private readonly getRTT: () => number
 
-  private readonly sendFrame: (header: FrameHeader, body?: Uint8ArrayList) => void
+  private readonly sendFrame: (header: FrameHeader, body?: Uint8ArrayList) => boolean
 
   constructor (init: YamuxStreamInit) {
+    const initialWindowSize = init.initialStreamWindowSize ?? INITIAL_STREAM_WINDOW
+
     super({
       ...init,
-      onEnd: (err?: Error) => {
-        this.state = StreamState.Finished
-        init.onEnd?.(err)
-      }
+      maxMessageSize: initialWindowSize - HEADER_LENGTH
     })
 
-    this.config = init.config
-    this._id = parseInt(init.id, 10)
-    this.name = init.name
+    this.streamId = init.streamId
     this.state = init.state
-    this.sendWindowCapacity = INITIAL_STREAM_WINDOW
-    this.recvWindow = this.config.initialStreamWindowSize
+    this.sendWindowCapacity = initialWindowSize
+    this.recvWindow = initialWindowSize
     this.recvWindowCapacity = this.recvWindow
+    this.maxStreamWindowSize = init.maxStreamWindowSize ?? MAX_STREAM_WINDOW
     this.epochStart = Date.now()
     this.getRTT = init.getRTT
-
     this.sendFrame = init.sendFrame
 
-    this.source = each(this.source, () => {
-      this.sendWindowUpdate()
-    })
-  }
-
-  /**
-   * Send a message to the remote muxer informing them a new stream is being
-   * opened.
-   *
-   * This is a noop for Yamux because the first window update is sent when
-   * .newStream is called on the muxer which opens the stream on the remote.
-   */
-  async sendNewStream (): Promise<void> {
-
+    const setStateToFinishedOnCloseListener = (): void => {
+      this.state = StreamState.Finished
+    }
+    this.addEventListener('close', setStateToFinishedOnCloseListener)
   }
 
   /**
    * Send a data message to the remote muxer
    */
-  async sendData (buf: Uint8ArrayList, options: AbortOptions = {}): Promise<void> {
-    buf = buf.sublist()
+  sendData (buf: Uint8ArrayList): SendResult {
+    const totalBytes = buf.byteLength
+    let sentBytes = 0
+    let canSendMore = true
+
+    this.log?.trace('send window capacity is %d bytes', this.sendWindowCapacity)
 
     // send in chunks, waiting for window updates
-    while (buf.byteLength !== 0) {
-      // wait for the send window to refill
+    while (buf.byteLength > 0) {
+      // we exhausted the send window, sending will resume later
       if (this.sendWindowCapacity === 0) {
-        this.log?.trace('wait for send window capacity, status %s', this.status)
-        await this.waitForSendWindowCapacity(options)
-
-        // check we didn't close while waiting for send window capacity
-        if (this.status === 'closed' || this.status === 'aborted' || this.status === 'reset') {
-          this.log?.trace('%s while waiting for send window capacity', this.status)
-          return
-        }
+        canSendMore = false
+        this.log?.trace('sent %d/%d bytes, exhausted send window, waiting for window update', sentBytes, totalBytes)
+        break
       }
 
       // send as much as we can
-      const toSend = Math.min(this.sendWindowCapacity, this.config.maxMessageSize - HEADER_LENGTH, buf.length)
+      const toSend = Math.min(this.sendWindowCapacity, buf.byteLength)
       const flags = this.getSendFlags()
 
-      this.sendFrame({
+      const data = buf.sublist(0, toSend)
+      buf.consume(toSend)
+
+      const muxerSendMore = this.sendFrame({
         type: FrameType.Data,
         flag: flags,
-        streamID: this._id,
+        streamID: this.streamId,
         length: toSend
-      }, buf.sublist(0, toSend))
+      }, data)
 
       this.sendWindowCapacity -= toSend
+      sentBytes += toSend
 
-      buf.consume(toSend)
+      if (!muxerSendMore) {
+        canSendMore = muxerSendMore
+        this.log.trace('sent %d/%d bytes, wait for muxer to have more send capacity', sentBytes, totalBytes)
+        break
+      }
+    }
+
+    return {
+      sentBytes,
+      canSendMore
     }
   }
 
@@ -133,7 +131,7 @@ export class YamuxStream extends AbstractStream {
     this.sendFrame({
       type: FrameType.WindowUpdate,
       flag: Flag.RST,
-      streamID: this._id,
+      streamID: this.streamId,
       length: 0
     })
   }
@@ -147,86 +145,83 @@ export class YamuxStream extends AbstractStream {
     this.sendFrame({
       type: FrameType.WindowUpdate,
       flag: flags,
-      streamID: this._id,
+      streamID: this.streamId,
       length: 0
     })
   }
 
   /**
    * Send a message to the remote muxer, informing them no more data messages
-   * will be read by this end of the stream
+   * will be read by this end of the stream - this is a no-op on Yamux streams
    */
-  async sendCloseRead (): Promise<void> {
-
+  async sendCloseRead (options?: AbortOptions): Promise<void> {
+    options?.signal?.throwIfAborted()
   }
 
   /**
-   * Wait for the send window to be non-zero
-   *
-   * Will throw with ERR_STREAM_ABORT if the stream gets aborted
+   * Stop sending window updates temporarily - in the interim the the remote
+   * send window will exhaust and the remote will stop sending data
    */
-  async waitForSendWindowCapacity (options: AbortOptions = {}): Promise<void> {
-    if (this.sendWindowCapacity > 0) {
-      return
-    }
+  sendPause (): void {
+    this.state = StreamState.Paused
+  }
 
-    let resolve: () => void
-    let reject: (err: Error) => void
-    const abort = (): void => {
-      if (this.status === 'open' || this.status === 'closing') {
-        reject(new AbortError('Stream aborted'))
-      } else {
-        // the stream was closed already, ignore the failure to send
-        resolve()
-      }
-    }
-    options.signal?.addEventListener('abort', abort)
-
-    try {
-      await new Promise<void>((_resolve, _reject) => {
-        this.sendWindowCapacityUpdate = () => {
-          _resolve()
-        }
-        reject = _reject
-        resolve = _resolve
-      })
-    } finally {
-      options.signal?.removeEventListener('abort', abort)
-    }
+  /**
+   * Start sending window updates as normal
+   */
+  sendResume (): void {
+    this.state = StreamState.Established
+    this.sendWindowUpdate()
   }
 
   /**
    * handleWindowUpdate is called when the stream receives a window update frame
    */
-  handleWindowUpdate (header: FrameHeader): void {
-    this.log?.trace('stream received window update id=%s', this._id)
-    this.processFlags(header.flag)
+  handleWindowUpdate (frame: Frame): void {
+    this.processFlags(frame.header.flag)
 
     // increase send window
-    const available = this.sendWindowCapacity
-    this.sendWindowCapacity += header.length
-    // if the update increments a 0 availability, notify the stream that sending can resume
-    if (available === 0 && header.length > 0) {
-      this.sendWindowCapacityUpdate?.()
+    this.sendWindowCapacity += frame.header.length
+
+    // change the chunk size the superclass uses
+    this.maxMessageSize = this.sendWindowCapacity - HEADER_LENGTH
+
+    if (this.maxMessageSize < 0) {
+      this.maxMessageSize = 0
+    }
+
+    if (this.maxMessageSize === 0) {
+      return
+    }
+
+    // if writing is paused and the update increases our send window, notify
+    // writers that writing can resume
+    if (this.writeBuffer.byteLength > 0) {
+      this.log?.trace('window update of %d bytes allows more data to be sent, have %d bytes queued, sending data %s', frame.header.length, this.writeBuffer.byteLength, this.sendingData)
+      this.safeDispatchEvent('drain')
     }
   }
 
   /**
    * handleData is called when the stream receives a data frame
    */
-  async handleData (header: FrameHeader, readData: () => Promise<Uint8ArrayList>): Promise<void> {
-    this.log?.trace('stream received data id=%s', this._id)
-    this.processFlags(header.flag)
+  handleData (frame: Frame): void {
+    if (!isDataFrame(frame)) {
+      throw new InvalidFrameError('Frame was not data frame')
+    }
+
+    this.processFlags(frame.header.flag)
 
     // check that our recv window is not exceeded
-    if (this.recvWindowCapacity < header.length) {
+    if (this.recvWindowCapacity < frame.header.length) {
       throw new ReceiveWindowExceededError('Receive window exceeded')
     }
 
-    const data = await readData()
-    this.recvWindowCapacity -= header.length
+    this.recvWindowCapacity -= frame.header.length
 
-    this.sourcePush(data)
+    this.onData(frame.data)
+
+    this.sendWindowUpdate()
   }
 
   /**
@@ -238,11 +233,13 @@ export class YamuxStream extends AbstractStream {
         this.state = StreamState.Established
       }
     }
+
     if ((flags & Flag.FIN) === Flag.FIN) {
-      this.remoteCloseWrite()
+      this.onRemoteCloseWrite()
     }
+
     if ((flags & Flag.RST) === Flag.RST) {
-      this.reset()
+      this.onRemoteReset()
     }
   }
 
@@ -266,11 +263,21 @@ export class YamuxStream extends AbstractStream {
   }
 
   /**
-   * potentially sends a window update enabling further writes to take place.
+   * Potentially sends a window update enabling further remote writes to take
+   * place.
    */
   sendWindowUpdate (): void {
-    // only send window updates if the read status is ready
-    if (this.readStatus !== 'ready') {
+    // only send window updates if the stream is not closed or closing
+    if (this.readStatus === 'closed' || this.readStatus === 'closing') {
+       return
+    }
+
+    if (this.state === StreamState.Paused) {
+      // we don't want any more data from the remote right now - update the
+      // epoch start as otherwise when we unpause we'd be looking at the epoch
+      // start from before we were paused
+      this.epochStart = Date.now()
+
       return
     }
 
@@ -282,9 +289,10 @@ export class YamuxStream extends AbstractStream {
     // then we (up to) double the recvWindow
     const now = Date.now()
     const rtt = this.getRTT()
-    if (flags === 0 && rtt > -1 && now - this.epochStart < rtt * 4) {
+
+    if (flags === 0 && rtt > -1 && (now - this.epochStart) <= (rtt * 4)) {
       // we've already validated that maxStreamWindowSize can't be more than MAX_UINT32
-      this.recvWindow = Math.min(this.recvWindow * 2, this.config.maxStreamWindowSize)
+      this.recvWindow = Math.min(this.recvWindow * 2, this.maxStreamWindowSize)
     }
 
     if (this.recvWindowCapacity >= this.recvWindow && flags === 0) {
@@ -303,7 +311,7 @@ export class YamuxStream extends AbstractStream {
     this.sendFrame({
       type: FrameType.WindowUpdate,
       flag: flags,
-      streamID: this._id,
+      streamID: this.streamId,
       length: delta
     })
   }

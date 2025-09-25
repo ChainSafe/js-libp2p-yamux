@@ -3,10 +3,10 @@ export enum FrameType {
   Data = 0x0,
   /** Used to updated the senders receive window size. This is used to implement per-session flow control. */
   WindowUpdate = 0x1,
-  /** Used to measure RTT. It can also be used to heart-beat and do keep-alives over TCP. */
+  /** Used to measure RTT. It can also be used to heart-beat and do keep-alive over TCP. */
   Ping = 0x2,
   /** Used to close a session. */
-  GoAway = 0x3,
+  GoAway = 0x3
 }
 
 export enum Flag {
@@ -17,7 +17,7 @@ export enum Flag {
   /** Performs a half-close of a stream. May be sent with a data message or window update. */
   FIN = 0x4,
   /** Reset a stream immediately. May be sent with a data or window update message. */
-  RST = 0x8,
+  RST = 0x8
 }
 
 const flagCodes = Object.values(Flag).filter((x) => typeof x !== 'string') as Flag[]
@@ -27,7 +27,7 @@ export const YAMUX_VERSION = 0
 export enum GoAwayCode {
   NormalTermination = 0x0,
   ProtocolError = 0x1,
-  InternalError = 0x2,
+  InternalError = 0x2
 }
 
 export const HEADER_LENGTH = 12
@@ -50,10 +50,10 @@ export interface FrameHeader {
   streamID: number
   /**
    * The meaning of the length field depends on the message type:
-   * * Data - provides the length of bytes following the header
-   * * Window update - provides a delta update to the window size
-   * * Ping - Contains an opaque value, echoed back
-   * * Go Away - Contains an error code
+   * Data - provides the length of bytes following the header
+   * Window update - provides a delta update to the window size
+   * Ping - Contains an opaque value, echoed back
+   * Go Away - Contains an error code
    */
   length: number
 }
