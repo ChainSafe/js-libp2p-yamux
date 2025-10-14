@@ -477,7 +477,17 @@ export class YamuxMuxer extends AbstractStreamMuxer<YamuxStream> {
 
     this.log.trace('sending frame %o', debugFrame(header))
 
-    return this.send(encoded)
+    try {
+      return this.send(encoded)
+    } catch (err: any) {
+      // During shutdown, the underlying transport may be closing/closed
+      // Catch the error to prevent unhandled rejections during cleanup
+      if (this.status === 'closing' || this.status === 'closed') {
+        this.log.trace('failed to send frame during muxer shutdown - %s - %o', err.message, debugFrame(header))
+        return false
+      }
+      throw err
+    }
   }
 
   private sendPing (pingId: number, flag: Flag = Flag.SYN): void {

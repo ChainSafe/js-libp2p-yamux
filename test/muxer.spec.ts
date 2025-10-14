@@ -133,4 +133,40 @@ describe('muxer', () => {
       expect(client.streams.length).to.equal(1)
     }
   })
+
+  it('test muxer close with active streams does not throw', async () => {
+    // Create multiple active streams
+    const streams = await Promise.all([
+      client.createStream(),
+      client.createStream(),
+      client.createStream()
+    ])
+
+    // Send some data on streams to make them active
+    streams.forEach(stream => {
+      stream.send(new Uint8Array(100))
+    })
+
+    await sleep(10)
+
+    // Close the muxer - the fix in sendFrame() should gracefully handle
+    // any errors from streams trying to send frames during shutdown
+    await expect(client.close()).to.eventually.be.fulfilled()
+
+    expect(client).to.have.property('status', 'closed')
+  })
+
+  it('test stream abort during muxer close does not throw', async () => {
+    const stream = await client.createStream()
+
+    // Abort stream immediately after initiating muxer close
+    // This creates a race where the stream tries to send a reset frame
+    // while the underlying transport is closing
+    const closePromise = client.close()
+    stream.abort(new Error('test abort'))
+
+    // The fix should prevent "Cannot write to a stream that is closing" errors
+    await expect(closePromise).to.eventually.be.fulfilled()
+    expect(client).to.have.property('status', 'closed')
+  })
 })
