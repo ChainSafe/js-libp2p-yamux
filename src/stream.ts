@@ -127,7 +127,7 @@ export class YamuxStream extends AbstractStream {
   /**
    * Send a reset message to the remote muxer
    */
-  async sendReset (): Promise<void> {
+  sendReset (): void {
     this.sendFrame({
       type: FrameType.WindowUpdate,
       flag: Flag.RST,
