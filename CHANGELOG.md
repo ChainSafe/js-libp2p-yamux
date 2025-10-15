@@ -1,3 +1,9 @@
+## [8.0.1](https://github.com/ChainSafe/js-libp2p-yamux/compare/v8.0.0...v8.0.1) (2025-10-15)
+
+### Bug Fixes
+
+* make sendReset synchronous to avoid unhandled rejections ([#113](https://github.com/ChainSafe/js-libp2p-yamux/issues/113)) ([232fb1b](https://github.com/ChainSafe/js-libp2p-yamux/commit/232fb1b6aec679d61a31f4b97deeed135ef6f5c4))
+
 ## [8.0.0](https://github.com/ChainSafe/js-libp2p-yamux/compare/v7.0.4...v8.0.0) (2025-09-25)
 
 ### ⚠ BREAKING CHANGES
