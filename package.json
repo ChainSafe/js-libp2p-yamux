@@ -22,6 +22,7 @@
     "muxer",
     "stream"
   ],
+  "packageManager": "pnpm@10.24.0",
   "type": "module",
   "types": "./dist/src/index.d.ts",
   "typesVersions": {

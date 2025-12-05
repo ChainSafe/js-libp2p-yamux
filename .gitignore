@@ -5,7 +5,6 @@ dist
 .coverage
 node_modules
 package-lock.json
-yarn.lock
 .vscode
 .tmp-compiled-docs
 tsconfig-doc-check.aegir.json
