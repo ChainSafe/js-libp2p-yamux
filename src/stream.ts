@@ -267,6 +267,11 @@ export class YamuxStream extends AbstractStream {
    * place.
    */
   sendWindowUpdate (): void {
+    // only send window updates if the stream is not closed or closing
+    if (this.readStatus === 'closed' || this.readStatus === 'closing') {
+      return
+    }
+
     if (this.state === StreamState.Paused) {
       // we don't want any more data from the remote right now - update the
       // epoch start as otherwise when we unpause we'd be looking at the epoch
