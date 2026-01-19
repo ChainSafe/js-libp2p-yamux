@@ -29,7 +29,7 @@ importers:
         version: 7.0.10(@babel/core@7.28.5)(@typescript-eslint/utils@8.48.1(eslint@9.39.1)(typescript@5.8.3))(eslint-import-resolver-node@0.3.9)
       '@libp2p/mplex':
         specifier: ^12.0.0
-        version: 12.0.10
+        version: 12.0.11
       '@types/mocha':
         specifier: ^10.0.10
         version: 10.0.10
@@ -1209,8 +1209,8 @@ packages:
   '@libp2p/memory@2.0.9':
     resolution: {integrity: sha512-997w21AVBh55Xnpga6Q+dKcPWc71uCFvSFQq3amYnP8eRnA2W603fuFrh0UwCEwmKXD0tpA6DSJG9AXPTHzHkQ==}
 
-  '@libp2p/mplex@12.0.10':
-    resolution: {integrity: sha512-KWX73qMiSPM0IHpEit1WtNGuPwf3H83noHDRWZ2M8mpRmeOpcgP0Fyba5p3UAyGabv5WLa5c8y2U7s9UD+hMRQ==}
+  '@libp2p/mplex@12.0.11':
+    resolution: {integrity: sha512-jD77lX3FkgHM4FdznF5G2aN8G6BoQrPZPTdox56KvFOUjUKs04KoiC58kuSHVuEo/25gBTpjTLnYJN07ixC3vg==}
 
   '@libp2p/multistream-select@7.0.9':
     resolution: {integrity: sha512-2WAaYuTD1B5FtC0+qFVyglMBnzI0KC8Xmiw7nX9XnlYwrnLj2LIBi/XK7MpsGU1LiphSxT8UfmngwnAWf4t1Dg==}
@@ -1229,6 +1229,9 @@ packages:
 
   '@libp2p/plaintext@3.0.9':
     resolution: {integrity: sha512-s1JpCHwej+UgsTZeuF/achzgKFIEIehQWJmaNpey5Pxs2E+T9JObn1NQSl7lXJgT5U4cQfOCOQDL95+794kg1g==}
+
+  '@libp2p/utils@7.0.10':
+    resolution: {integrity: sha512-+mzD+7yLMoZ8+34y/iS9d1CnwHjJJ/qEsao9FckHf9T9tnVXEyLLu9TpzBCcGRm4fUK/QCSHK2AcZH50kkAFkw==}
 
   '@libp2p/utils@7.0.9':
     resolution: {integrity: sha512-2wYhsgfbFXfh5ui0ME9MNHc7uUIuZwpeZ/yagKmDSjIP7B+L3/9mj+vVXO14AhmjfwnKx2xUDQvzGZeq5to4ow==}
@@ -1854,6 +1857,10 @@ packages:
     resolution: {integrity: sha512-iADenERppdC+A2YKbOXXB2WUeABLaM6qnpZ70kZbPZ1cZMMJ7eF+3CaYm+/PhBizgkzlvssC7QuHS30oOiQYWA==}
     engines: {node: '>=16.0.0', npm: '>=7.0.0'}
 
+  any-signal@4.2.0:
+    resolution: {integrity: sha512-LndMvYuAPf4rC195lk7oSFuHOYFpOszIYrNYv0gHAvz+aEhE9qPZLhmrIz5pXP2BSsPOXvsuHDXEGaiQhIh9wA==}
+    engines: {node: '>=16.0.0', npm: '>=7.0.0'}
+
   append-transform@2.0.0:
     resolution: {integrity: sha512-7yeyCEurROLQJFv5Xj4lEGTy0borxepjFv1g22oAdqFu//SrAlDl1O1Nxx15SH1RoliUml6p8dwJW9jvZughhg==}
     engines: {node: '>=8'}
@@ -2109,6 +2116,10 @@ packages:
 
   cborg@4.3.2:
     resolution: {integrity: sha512-l+QzebEAG0vb09YKkaOrMi2zmm80UNjmbvocMIeW5hO7JOXWdrQ/H49yOKfYX0MBgrj/KWgatBnEgRXyNyKD+A==}
+    hasBin: true
+
+  cborg@4.4.1:
+    resolution: {integrity: sha512-mJ6KJfhqHQm5A6nVWBsqUdhDUek2apbF7PhhETwZCJIrgX/xVuR0AIGoGbmAIC86WOwCZmRDaGMz2gOtcPntuw==}
     hasBin: true
 
   ccount@2.0.1:
@@ -4297,6 +4308,9 @@ packages:
 
   multiformats@13.4.1:
     resolution: {integrity: sha512-VqO6OSvLrFVAYYjgsr8tyv62/rCQhPgsZUXLTqoFLSgdkgiUYKYeArbt1uWLlEpkjxQe+P0+sHlbPEte1Bi06Q==}
+
+  multiformats@13.4.2:
+    resolution: {integrity: sha512-eh6eHCrRi1+POZ3dA+Dq1C6jhP1GNtr9CRINMb67OKzqW9I5DUuZM/3jLPlzhgpGeiNUlEGEbkCYChXMCc/8DQ==}
 
   multimatch@5.0.0:
     resolution: {integrity: sha512-ypMKuglUrZUD99Tk2bUQ+xNQj43lPEfAeX2o9cTteAmShXy2VHDJpuwu1o0xqoKCt9jLVAvwyFKdLTPXKAfJyA==}
@@ -7361,10 +7375,10 @@ snapshots:
       race-signal: 2.0.0
       uint8arraylist: 2.4.8
 
-  '@libp2p/mplex@12.0.10':
+  '@libp2p/mplex@12.0.11':
     dependencies:
       '@libp2p/interface': 3.1.0
-      '@libp2p/utils': 7.0.9
+      '@libp2p/utils': 7.0.10
       it-pushable: 3.2.3
       uint8-varint: 2.0.4
       uint8arraylist: 2.4.8
@@ -7383,7 +7397,7 @@ snapshots:
       '@libp2p/interface': 3.1.0
       '@libp2p/peer-id': 6.0.4
       '@libp2p/utils': 7.0.9
-      multiformats: 13.4.1
+      multiformats: 13.4.2
 
   '@libp2p/peer-id@6.0.4':
     dependencies:
@@ -7428,6 +7442,32 @@ snapshots:
       '@libp2p/peer-id': 6.0.4
       '@libp2p/utils': 7.0.9
       protons-runtime: 5.6.0
+      uint8arraylist: 2.4.8
+      uint8arrays: 5.1.0
+
+  '@libp2p/utils@7.0.10':
+    dependencies:
+      '@chainsafe/is-ip': 2.1.0
+      '@chainsafe/netmask': 2.0.0
+      '@libp2p/crypto': 5.1.13
+      '@libp2p/interface': 3.1.0
+      '@libp2p/logger': 6.2.2
+      '@multiformats/multiaddr': 13.0.1
+      '@sindresorhus/fnv1a': 3.1.0
+      any-signal: 4.2.0
+      cborg: 4.4.1
+      delay: 7.0.0
+      is-loopback-addr: 2.0.2
+      it-length-prefixed: 10.0.1
+      it-pipe: 3.0.1
+      it-pushable: 3.2.3
+      it-stream-types: 2.0.2
+      main-event: 1.0.1
+      netmask: 2.0.2
+      p-defer: 4.0.1
+      p-event: 7.0.1
+      race-signal: 2.0.0
+      uint8-varint: 2.0.4
       uint8arraylist: 2.4.8
       uint8arrays: 5.1.0
 
@@ -8268,6 +8308,8 @@ snapshots:
 
   any-signal@4.1.1: {}
 
+  any-signal@4.2.0: {}
+
   append-transform@2.0.0:
     dependencies:
       default-require-extensions: 3.0.1
@@ -8567,6 +8609,8 @@ snapshots:
   caniuse-lite@1.0.30001759: {}
 
   cborg@4.3.2: {}
+
+  cborg@4.4.1: {}
 
   ccount@2.0.1: {}
 
@@ -11303,6 +11347,8 @@ snapshots:
 
   multiformats@13.4.1: {}
 
+  multiformats@13.4.2: {}
+
   multimatch@5.0.0:
     dependencies:
       '@types/minimatch': 3.0.5
@@ -12884,7 +12930,7 @@ snapshots:
 
   uint8arrays@5.1.0:
     dependencies:
-      multiformats: 13.4.1
+      multiformats: 13.4.2
 
   unbox-primitive@1.1.0:
     dependencies:
