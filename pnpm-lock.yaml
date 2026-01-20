@@ -47,7 +47,7 @@ importers:
         version: 3.2.3
       p-event:
         specifier: ^7.0.0
-        version: 7.0.1
+        version: 7.1.0
 
 packages:
 
@@ -4580,8 +4580,8 @@ packages:
     resolution: {integrity: sha512-Q6Bekk5wpzW5qIyUP4gdMEujObYstZl6DMMOSenwBvV0BlE5LkDwkjs5yHbZmdCEq2o4RJx4tE1vwxFVf2FG1w==}
     engines: {node: '>=16.17'}
 
-  p-event@7.0.1:
-    resolution: {integrity: sha512-SI8GHTMMv6dAIMMHBG0g6PyZIEal+CCaKCje24NxkgEJrPvfdfEP0xXVoDC3OGxlfjM8qqSs/luTaobCkGdEUA==}
+  p-event@7.1.0:
+    resolution: {integrity: sha512-/lkPs5W1aC3cp6vqZefpdosOn65J571sWodyfOQiF0+tmDCpU+H8Atwpu0vQROCVUlZuToDN5eyTLsMLLc54mg==}
     engines: {node: '>=20'}
 
   p-filter@4.1.0:
@@ -7277,7 +7277,7 @@ snapshots:
       '@libp2p/interface-internal': 3.0.9
       '@libp2p/utils': 7.0.9
       '@multiformats/multiaddr': 13.0.1
-      p-event: 7.0.1
+      p-event: 7.1.0
       uint8arraylist: 2.4.8
 
   '@libp2p/interface-compliance-tests@7.0.10(@babel/core@7.28.5)(@typescript-eslint/utils@8.48.1(eslint@9.39.1)(typescript@5.8.3))(eslint-import-resolver-node@0.3.9)':
@@ -7302,7 +7302,7 @@ snapshots:
       it-to-buffer: 4.0.10
       libp2p: 3.1.2
       p-defer: 4.0.1
-      p-event: 7.0.1
+      p-event: 7.1.0
       p-retry: 7.1.0
       p-wait-for: 6.0.0
       protons-runtime: 5.6.0
@@ -7451,7 +7451,7 @@ snapshots:
       main-event: 1.0.1
       netmask: 2.0.2
       p-defer: 4.0.1
-      p-event: 7.0.1
+      p-event: 7.1.0
       race-signal: 2.0.0
       uint8-varint: 2.0.4
       uint8arraylist: 2.4.8
@@ -10632,7 +10632,7 @@ snapshots:
       main-event: 1.0.1
       multiformats: 13.4.1
       p-defer: 4.0.1
-      p-event: 7.0.1
+      p-event: 7.1.0
       p-retry: 7.1.0
       progress-events: 1.0.1
       race-signal: 2.0.0
@@ -11592,9 +11592,9 @@ snapshots:
     dependencies:
       p-timeout: 6.1.4
 
-  p-event@7.0.1:
+  p-event@7.1.0:
     dependencies:
-      p-timeout: 6.1.4
+      p-timeout: 7.0.1
 
   p-filter@4.1.0:
     dependencies:
